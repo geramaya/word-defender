@@ -1,0 +1,88 @@
+{
+  "words": [
+    {
+      "text": "hello",
+      "language": "English",
+      "fontWeight": 800,
+      "color": "#FFB3BA",
+      "opacity": 0.9
+    },
+    {
+      "text": "hola",
+      "language": "Spanish",
+      "fontWeight": 300,
+      "color": "#BAFFC9",
+      "opacity": 0.8
+    },
+    {
+      "text": "bonjour",
+      "language": "French",
+      "fontWeight": 600,
+      "color": "#BAE1FF",
+      "opacity": 0.7
+    },
+    {
+      "text": "ciao",
+      "language": "Italian",
+      "fontWeight": 500,
+      "color": "#FFFFBA",
+      "opacity": 0.8
+    },
+    {
+      "text": "hallo",
+      "language": "German",
+      "fontWeight": 400,
+      "color": "#FFD1FF",
+      "opacity": 0.6
+    },
+    {
+      "text": "こんにちは",
+      "language": "Japanese",
+      "fontWeight": 700,
+      "color": "#FFDFBA",
+      "opacity": 0.5
+    },
+    {
+      "text": "olá",
+      "language": "Portuguese",
+      "fontWeight": 600,
+      "color": "#E1BAFF",
+      "opacity": 0.9
+    },
+    {
+      "text": "привет",
+      "language": "Russian",
+      "fontWeight": 400,
+      "color": "#BAFFE1",
+      "opacity": 0.7
+    },
+    {
+      "text": "merhaba",
+      "language": "Turkish",
+      "fontWeight": 800,
+      "color": "#FFC9BA",
+      "opacity": 0.9
+    },
+    {
+      "text": "안녕하세요",
+      "language": "Korean",
+      "fontWeight": 300,
+      "color": "#C9BAFF",
+      "opacity": 0.6
+    },
+    {
+      "text": "namaste",
+      "language": "Hindi",
+      "fontWeight": 500,
+      "color": "#BAFFD1",
+      "opacity": 0.8
+    },
+    {
+      "text": "shalom",
+      "language": "Hebrew",
+      "fontWeight": 700,
+      "color": "#FFE1BA",
+      "opacity": 0.8
+    }
+  ]
+}
