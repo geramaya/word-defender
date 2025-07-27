@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Defender vs. The Psycho Word Hunter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #0a0a0a;
+            font-family: 'Inter', sans-serif;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #111111 0%, #000000 100%);
+            z-index: -2;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .star.small { 
+            width: 2px; 
+            height: 2px; 
+            animation-duration: 2s; 
+        }
+        
+        .star.medium { 
+            width: 3px; 
+            height: 3px; 
+            animation-duration: 3s; 
+        }
+        
+        .star.large { 
+            width: 4px; 
+            height: 4px; 
+            animation-duration: 4s; 
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 60px 0;
+        }
+
+        .title {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 800;
+            background: linear-gradient(45deg, #4488ff, #66aaff, #88ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(68, 136, 255, 0.5);
+            margin-bottom: 20px;
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+
+        .subtitle {
+            font-size: clamp(1.2rem, 4vw, 2rem);
+            color: #ff4444;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+        }
+
+        .tagline {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: #cccccc;
+            font-weight: 400;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        @keyframes glow {
+            0% { text-shadow: 0 0 30px rgba(68, 136, 255, 0.5); }
+            100% { text-shadow: 0 0 50px rgba(68, 136, 255, 0.8), 0 0 80px rgba(68, 136, 255, 0.3); }
+        }
+
+        /* Game Preview */
+        .game-preview {
+            background: rgba(26, 26, 26, 0.8);
+            border: 2px solid #4488ff;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 60px 0;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 60px rgba(68, 136, 255, 0.3);
+        }
+
+        .preview-image {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border: 2px solid #333;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-content {
+            position: relative;
+            text-align: center;
+        }
+
+        .demo-spaceship {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .demo-word {
+            display: inline-block;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0 15px;
+            padding: 10px 20px;
+            background: rgba(68, 136, 255, 0.2);
+            border: 1px solid #4488ff;
+            border-radius: 8px;
+            animation: wordFloat 4s ease-in-out infinite;
+        }
+
+        .demo-word:nth-child(2) { animation-delay: -1s; }
+        .demo-word:nth-child(3) { animation-delay: -2s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+
+        @keyframes wordFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Features */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 60px 0;
+        }
+
+        .feature {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(68, 136, 255, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-5px);
+            border-color: #4488ff;
+            box-shadow: 0 10px 30px rgba(68, 136, 255, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .feature h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #66aaff;
+        }
+
+        .feature p {
+            color: #cccccc;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        /* Game Stats */
+        .game-stats {
+            background: rgba(26, 26, 26, 0.8);
+            border: 2px solid #44ff88;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 60px 0;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .game-stats h2 {
+            font-size: 2rem;
+            color: #44ff88;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+        }
+
+        .stat {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(68, 255, 136, 0.3);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #44ff88;
+            display: block;
+        }
+
+        .stat-label {
+            color: #cccccc;
+            font-size: 1rem;
+            margin-top: 5px;
+        }
+
+        /* Call to Action */
+        .cta-section {
+            text-align: center;
+            padding: 80px 0;
+        }
+
+        .play-button {
+            display: inline-block;
+            background: linear-gradient(45deg, #4488ff, #66aaff);
+            color: white;
+            text-decoration: none;
+            padding: 20px 50px;
+            font-size: 1.5rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(68, 136, 255, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .play-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(68, 136, 255, 0.6);
+        }
+
+        .play-button:active {
+            transform: translateY(-1px);
+        }
+
+        .play-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .play-button:hover::before {
+            left: 100%;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid rgba(68, 136, 255, 0.3);
+            color: #888888;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                padding: 40px 0;
+            }
+
+            .game-preview, .game-stats {
+                padding: 25px;
+                margin: 40px 0;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .feature {
+                padding: 25px;
+            }
+
+            .preview-image {
+                height: 200px;
+            }
+
+            .cta-section {
+                padding: 60px 0;
+            }
+
+            .play-button {
+                padding: 15px 35px;
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            background: #4488ff;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: floatUp 8s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="title">WORD DEFENDER</h1>
+            <h2 class="subtitle">vs. The Psycho Word Hunter</h2>
+            <p class="tagline">Rette schwebende Wörter vor einem aggressiven Raumschiff in diesem intensiven Space-Survival-Spiel!</p>
+        </header>
+
+        <!-- Game Preview -->
+        <section class="game-preview">
+            <div class="preview-image">
+                <div class="preview-content">
+                    <div class="demo-spaceship">
+                        <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="spaceshipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#silver;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#darkgray;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <!-- Main body -->
+                            <ellipse cx="25" cy="31.25" rx="10" ry="15" fill="url(#spaceshipGradient)" stroke="#666" stroke-width="1"/>
+                            <!-- Cockpit -->
+                            <ellipse cx="25" cy="18.75" rx="5" ry="7.5" fill="#4488ff" opacity="0.7"/>
+                            <!-- Wings -->
+                            <polygon points="15,37.5 10,43.75 15,40" fill="url(#spaceshipGradient)" stroke="#666"/>
+                            <polygon points="35,37.5 40,43.75 35,40" fill="url(#spaceshipGradient)" stroke="#666"/>
+                            <!-- Engine glow -->
+                            <ellipse cx="25" cy="46.25" rx="3.75" ry="2.5" fill="#ff4444" opacity="0.8"/>
+                            <ellipse cx="25" cy="47.5" rx="2.5" ry="1.25" fill="#ffff44" opacity="0.9"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="demo-word">HELLO</span>
+                        <span class="demo-word">WORLD</span>
+                        <span class="demo-word">DEFENDER</span>
+                    </div>
+                </div>
+            </div>
+            <p style="color: #cccccc; text-align: center; font-size: 1.1rem; line-height: 1.6;">
+                Ein psychotisches Raumschiff jagt 12 schwebende Wörter in verschiedenen Sprachen. 
+                Deine Mission: Klicke auf die Wörter, um sie zu bewegen und vor dem Schiff zu retten!
+            </p>
+        </section>
+
+        <!-- Features -->
+        <section class="features">
+            <div class="feature">
+                <span class="feature-icon">🚀</span>
+                <h3>Intelligentes Raumschiff</h3>
+                <p>Das Schiff wird aggressiver, je weniger Wörter übrig sind. Es verwendet Radar, verschiedene Waffen und wird immer verzweifelter!</p>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🛡️</span>
+                <h3>Schild-System</h3>
+                <p>Aktiviere Schilde mit der SPACE-Taste, um Wörter zu schützen. 3 Schilde verfügbar mit 60-Sekunden Cooldown!</p>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">⚡</span>
+                <h3>Dynamische Waffen</h3>
+                <p>4 verschiedene Schusstypen: Normal (47%), Burst (25%), Schaden (13%) und Ultra-Laser (15%)!</p>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">💥</span>
+                <h3>Defensive Systeme</h3>
+                <p>Verdiene Punkte durch Verteidigung und schalte Space-Beacons und schwebende Minen frei!</p>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">📊</span>
+                <h3>Highscore-System</h3>
+                <p>Konkuriere um die beste Überlebenszeit und höchste Punktzahl. Jede erfolgreiche Verteidigung zählt!</p>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🎵</span>
+                <h3>Immersive Soundeffekte</h3>
+                <p>Realistische Space-Sounds: Triebwerke, Laser, Explosionen und Schild-Effekte für maximale Immersion!</p>
+            </div>
+        </section>
+
+        <!-- Game Stats -->
+        <section class="game-stats">
+            <h2>🎮 Spiel-Features</h2>
+            <div class="stats-grid">
+                <div class="stat">
+                    <span class="stat-number">12</span>
+                    <span class="stat-label">Verschiedene Wörter</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">4</span>
+                    <span class="stat-label">Schusstypen</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">3</span>
+                    <span class="stat-label">Schilde verfügbar</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">∞</span>
+                    <span class="stat-label">Überlebensmodus</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Call to Action -->
+        <section class="cta-section">
+            <a href="defender.html" class="play-button">Spiel Starten</a>
+            <p style="color: #888888; margin-top: 20px; font-size: 1rem;">
+                Bereit für das ultimative Wort-Verteidigungserlebnis? 🌟
+            </p>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Word Defender vs. The Psycho Word Hunter | Ein intensives Space-Survival-Spiel</p>
+    </footer>
+
+    <script>
+        // Create animated stars
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 100;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                // Random size
+                const sizes = ['small', 'medium', 'large'];
+                star.classList.add(sizes[Math.floor(Math.random() * sizes.length)]);
+                
+                // Random position
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                
+                // Random animation delay
+                star.style.animationDelay = Math.random() * 3 + 's';
+                
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Create floating particles
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            
+            // Random size between 2-6px
+            const size = Math.random() * 4 + 2;
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            
+            // Random horizontal position
+            particle.style.left = Math.random() * 100 + '%';
+            
+            // Random animation duration
+            particle.style.animationDuration = (Math.random() * 6 + 6) + 's';
+            
+            document.body.appendChild(particle);
+            
+            // Remove particle after animation
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.remove();
+                }
+            }, 14000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            createStars();
+            
+            // Create particles periodically
+            setInterval(createParticle, 2000);
+            
+            // Add smooth scrolling for any internal links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
