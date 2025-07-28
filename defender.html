@@ -2081,16 +2081,15 @@
                 radarPingInterval = null;
             }
 
-            // Entferne BEIDE Raumschiffe
+            // KORREKTUR: Entferne BEIDE Raumschiffe und ihre Controller
             if (spaceshipController && spaceshipController.spaceship && spaceshipController.spaceship.parentNode) {
                 spaceshipController.spaceship.remove();
             }
             if (secondSpaceshipController && secondSpaceshipController.spaceship && secondSpaceshipController.spaceship.parentNode) {
                 secondSpaceshipController.spaceship.remove();
             }
-            // Setze BEIDE Controller zurück
             spaceshipController = null;
-            secondSpaceshipController = null;
+            secondSpaceshipController = null; // WICHTIG: Setzt den zweiten Jäger zurück
 
             floatingTexts.forEach(word => {
                 if (word.element && word.element.parentNode) {
@@ -4093,17 +4092,12 @@
             showInfoOverlay();
             
             function animate() {
-                // Update spaceship position
+                // Update des ersten Raumschiffs
                 if (spaceshipController && gameStarted) {
                     spaceshipController.update();
                 }
                 
-                // Check for second hunter when game started
-                if (gameStarted) {
-                    checkForSecondHunter();
-                }
-                
-                // Update second spaceship if it exists
+                // Update des zweiten Raumschiffs, falls es existiert
                 if (secondSpaceshipController && gameStarted) {
                     secondSpaceshipController.update();
                 }
@@ -4114,46 +4108,36 @@
                     }
                 });
                 
-                // Update homing projectiles
+                // Update der zielsuchenden Projektile
                 if (gameStarted && activeProjectiles.length > 0) {
                     for (let i = activeProjectiles.length - 1; i >= 0; i--) {
                         const projectile = activeProjectiles[i];
-                        if (!projectile.update(16)) { // Assuming ~60fps (16ms per frame)
-                            // Projectile was destroyed or expired, remove from array
+                        if (!projectile.update(16)) {
                             activeProjectiles.splice(i, 1);
                         }
                     }
                 }
                 
-                // Update beacon mine system
+                // Alle anderen Spiel-Updates
                 if (gameStarted) {
                     updateBeacons();
                     updateFloatingMines();
-                    
-                    // Update pulsar endgame system
-                    if (gameStarted) {
-                        updatePulsarPhase();
-                        
-                        // Handle pulsar timing and cycles
-                        if (pulsarPhase > 0) {
-                            pulsarTimer += 16; // Assuming ~60fps (16ms per frame)
+                    updatePulsarPhase();
+                    checkForSecondHunter(); // Prüft, ob der zweite Jäger gerufen werden soll
+
+                    if (pulsarPhase > 0) {
+                        pulsarTimer += 16;
+                        if (pulsarTimer >= pulsarCycleTime) {
+                            pulsarActive = !pulsarActive;
+                            pulsarTimer = 0;
                             
-                            if (pulsarTimer >= pulsarCycleTime) {
-                                // Toggle pulsar active state
-                                pulsarActive = !pulsarActive;
-                                pulsarTimer = 0;
-                                
-                                if (pulsarActive) {
-                                    pulsarCycleCount++;
-                                    // Create wave when starting attraction
-                                    createPulsarWave(pulsarPhase === 1 ? "phase1" : "phase2");
-                                }
-                            }
-                            
-                            // Apply attraction force during active cycles
                             if (pulsarActive) {
-                                applyPulsarAttraction(16);
+                                pulsarCycleCount++;
+                                createPulsarWave(pulsarPhase === 1 ? "phase1" : "phase2");
                             }
+                        }
+                        if (pulsarActive) {
+                            applyPulsarAttraction(16);
                         }
                     }
                 }
