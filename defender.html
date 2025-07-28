@@ -1002,13 +1002,13 @@
         
         let wordsData = [];
         let floatingTexts = [];
-        let spaceshipShootTimer;
+
         let spaceshipController;
         let secondSpaceshipController = null;
         let restartButton = null;
         let gameStarted = false;
         let gameStartTime = 0;
-        let radarPingInterval = null;
+
         
         // Global array for active homing projectiles
         let activeProjectiles = [];
@@ -2090,25 +2090,15 @@
                 emergencyOverlay.remove();
             }
 
-            if (spaceshipShootTimer) {
-                clearTimeout(spaceshipShootTimer);
-                clearInterval(spaceshipShootTimer);
+            // Zerstöre alle aktiven Jäger und ihre Timer
+            if (spaceshipController) {
+                spaceshipController.destroy();
+                spaceshipController = null;
             }
-
-            if (radarPingInterval) {
-                clearInterval(radarPingInterval);
-                radarPingInterval = null;
+            if (secondSpaceshipController) {
+                secondSpaceshipController.destroy();
+                secondSpaceshipController = null;
             }
-
-            // KORREKTUR: Entferne BEIDE Raumschiffe und ihre Controller
-            if (spaceshipController && spaceshipController.spaceship && spaceshipController.spaceship.parentNode) {
-                spaceshipController.spaceship.remove();
-            }
-            if (secondSpaceshipController && secondSpaceshipController.spaceship && secondSpaceshipController.spaceship.parentNode) {
-                secondSpaceshipController.spaceship.remove();
-            }
-            spaceshipController = null;
-            secondSpaceshipController = null; // WICHTIG: Setzt den zweiten Jäger zurück
 
             floatingTexts.forEach(word => {
                 if (word.element && word.element.parentNode) {
@@ -2134,6 +2124,7 @@
             hasFirstAttackHappened = false;
             defendedWordsCounter = 0;
             resetPulsar();
+            stopMineSpawning();
             
             // Info-Overlay für den Neustart anzeigen
             showInfoOverlay();
@@ -2167,8 +2158,8 @@
             constructor() {
                 this.container = document.querySelector('.container');
                 this.spaceship = null;
-                this.x = containerWidth / 2;
-                this.y = containerHeight / 2;
+                this.x = containerWidth / 2 + (Math.random() - 0.5) * 200;
+                this.y = containerHeight / 2 + (Math.random() - 0.5) * 200;
                 this.vx = (Math.random() - 0.5) * 2;
                 this.vy = (Math.random() - 0.5) * 2;
                 this.targetVx = this.vx;
@@ -2178,20 +2169,38 @@
                 this.targetRotation = 0;
                 this.isChasing = false;
                 this.chaseTarget = null;
-                this.shootingRadius = Math.min(containerWidth, containerHeight) / 2.5; // War / 5 -> Verdoppelt
-                this.radarRadius = Math.min(containerWidth, containerHeight) / 1.5; // War / 2 -> Deutlich vergrößert für längere Vorwarnzeit
-                this.MAX_FIRING_ANGLE = 30; // ±30° Schusswinkel vor dem Schiff
-                this.COLLISION_RADIUS = 25; // Kollisions-Radius für Projektil-Treffer
+                this.shootingRadius = Math.min(containerWidth, containerHeight) / 2.5;
+                this.radarRadius = Math.min(containerWidth, containerHeight) / 1.5;
+                this.MAX_FIRING_ANGLE = 30;
+                this.COLLISION_RADIUS = 25;
                 this.targetingWord = null;
                 this.targetingTimer = null;
                 this.radarPing = null;
-                this.chaseAttempts = 0; // Track chase attempts for current target
-                this.maxChaseAttempts = 1; // Will be set randomly (1-2)
-                this.aggressionModeTimer = 0; // Timer for checking aggression mode switches
-                this.isInForcedAggressionMode = false; // Track if ship is in forced aggression mode
-                this.forcedAggressionDuration = 0; // How long to stay in forced aggression mode
+                this.chaseAttempts = 0;
+                this.maxChaseAttempts = 1;
+                this.aggressionModeTimer = 0;
+                this.isInForcedAggressionMode = false;
+                this.forcedAggressionDuration = 0;
+                
+                // Instanz-spezifische Timer
+                this.shootTimer = null;
+                this.radarInterval = null;
+
                 this.createSpaceship();
                 this.startShootingTimer();
+            }
+            
+            destroy() {
+                // Stoppt alle Timer dieser Instanz
+                clearTimeout(this.shootTimer);
+                clearTimeout(this.targetingTimer);
+                clearTimeout(this.radarInterval);
+                
+                // Entfernt das DOM-Element
+                if (this.spaceship && this.spaceship.parentNode) {
+                    this.spaceship.remove();
+                }
+                console.log('Spaceship controller and its timers have been destroyed.');
             }
             
             createSpaceship() {
@@ -2450,22 +2459,20 @@
             }
             
             startShootingTimer() {
-                // First attack after 20 seconds
                 const initialDelay = hasFirstAttackHappened ? calculateAttackInterval() : 20000;
                 
-                spaceshipShootTimer = setTimeout(() => {
+                this.shootTimer = setTimeout(() => {
                     hasFirstAttackHappened = true;
-                    if (!this.targetingWord) { // Only shoot if not already targeting
+                    if (!this.targetingWord) {
                         this.shootAtRandomWord();
                     }
                     
-                    // Continue with dynamic intervals
                     const scheduleNextAttack = () => {
-                        spaceshipShootTimer = setTimeout(() => {
-                            if (!this.targetingWord) { // Only shoot if not already targeting
+                        this.shootTimer = setTimeout(() => {
+                            if (!this.targetingWord) {
                                 this.shootAtRandomWord();
                             }
-                            scheduleNextAttack(); // Schedule next attack with current interval
+                            scheduleNextAttack();
                         }, calculateAttackInterval());
                     };
                     
@@ -2616,16 +2623,16 @@
             }
             
             startRadarPingInterval() {
-                if (radarPingInterval) {
-                    clearInterval(radarPingInterval);
+                if (this.radarInterval) {
+                    clearTimeout(this.radarInterval);
                 }
                 
                 const scheduleNextPing = () => {
-                    const randomInterval = 500 + Math.random() * 500; // 0.5-1 seconds
-                    radarPingInterval = setTimeout(() => {
+                    const randomInterval = 500 + Math.random() * 500;
+                    this.radarInterval = setTimeout(() => {
                         if (this.targetingWord && !this.targetingWord.isDestroyed) {
                             this.createRadarPing();
-                            scheduleNextPing(); // Schedule next ping
+                            scheduleNextPing();
                         }
                     }, randomInterval);
                 };
@@ -2676,9 +2683,9 @@
                     this.targetingTimer = null;
                 }
                 
-                if (radarPingInterval) {
-                    clearTimeout(radarPingInterval);
-                    radarPingInterval = null;
+                if (this.radarInterval) {
+                    clearTimeout(this.radarInterval);
+                    this.radarInterval = null;
                 }
                 
                 if (this.radarPing) {
@@ -2687,7 +2694,7 @@
                 }
                 
                 if (this.targetingWord) {
-                    this.targetingWord.element.classList.remove('targeted'); // Remove red glow
+                    this.targetingWord.element.classList.remove('targeted');
                     this.targetingWord = null;
                 }
             }
