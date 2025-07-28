@@ -997,6 +997,9 @@
         let gameStartTime = 0;
         let radarPingInterval = null;
         
+        // Global array for active homing projectiles
+        let activeProjectiles = [];
+        
         // Shield system
         let shieldCount = 3;
         let maxShields = 3;
@@ -1270,6 +1273,157 @@
             
             console.log(`Spaceship chase speed - Words: ${remainingWords}, Speed: ${dynamicSpeed.toFixed(1)}`);
             return dynamicSpeed; // 4.8 → 12.0
+        }
+        
+        // HomingProjectile class for Ultra-Nachschuss
+        class HomingProjectile {
+            constructor(startX, startY, target, speed, turnRate) {
+                this.x = startX;
+                this.y = startY;
+                this.target = target;
+                this.speed = speed;
+                this.turnRate = turnRate || 0.04; // How quickly it can turn toward target
+                this.lifespan = 5000; // 5 seconds max lifetime
+                this.age = 0;
+                
+                // Calculate initial velocity direction toward target
+                const targetRect = target.element.getBoundingClientRect();
+                const targetX = targetRect.left + targetRect.width / 2;
+                const targetY = targetRect.top + targetRect.height / 2;
+                
+                const deltaX = targetX - startX;
+                const deltaY = targetY - startY;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                this.vx = (deltaX / distance) * speed;
+                this.vy = (deltaY / distance) * speed;
+                
+                // Create DOM element
+                this.element = this.createElement();
+                document.querySelector('.container').appendChild(this.element);
+            }
+            
+            createElement() {
+                const projectile = document.createElement('div');
+                projectile.className = 'laser ultra-laser';
+                projectile.style.left = this.x + 'px';
+                projectile.style.top = this.y + 'px';
+                projectile.style.width = '18px';
+                projectile.style.height = '18px';
+                projectile.style.background = 'radial-gradient(circle, #aa44ff 0%, #6600aa 50%, #440088 100%)';
+                projectile.style.border = '3px solid #ffffff';
+                projectile.style.boxShadow = `
+                    0 0 20px #aa44ff,
+                    0 0 40px #aa44ff,
+                    0 0 60px rgba(170, 68, 255, 0.8),
+                    inset 0 0 8px rgba(255, 255, 255, 0.6)`;
+                projectile.style.animation = 'ultraProjectilePulse 0.15s ease-in-out infinite alternate';
+                return projectile;
+            }
+            
+            update(deltaTime) {
+                this.age += deltaTime;
+                
+                // Check if projectile has expired
+                if (this.age >= this.lifespan) {
+                    this.destroy();
+                    return false;
+                }
+                
+                // Check if target still exists and is not destroyed
+                if (!this.target || this.target.isDestroyed) {
+                    this.destroy();
+                    return false;
+                }
+                
+                // Get current target position
+                const targetRect = this.target.element.getBoundingClientRect();
+                const targetX = targetRect.left + targetRect.width / 2;
+                const targetY = targetRect.top + targetRect.height / 2;
+                
+                // Calculate direction to target
+                const deltaX = targetX - this.x;
+                const deltaY = targetY - this.y;
+                const distanceToTarget = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                if (distanceToTarget > 0) {
+                    // Calculate desired velocity direction
+                    const desiredVx = (deltaX / distanceToTarget) * this.speed;
+                    const desiredVy = (deltaY / distanceToTarget) * this.speed;
+                    
+                    // Gradually adjust current velocity toward desired velocity (homing behavior)
+                    this.vx += (desiredVx - this.vx) * this.turnRate;
+                    this.vy += (desiredVy - this.vy) * this.turnRate;
+                    
+                    // Normalize velocity to maintain consistent speed
+                    const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                    if (currentSpeed > 0) {
+                        this.vx = (this.vx / currentSpeed) * this.speed;
+                        this.vy = (this.vy / currentSpeed) * this.speed;
+                    }
+                }
+                
+                // Update position
+                this.x += this.vx * (deltaTime / 16); // Normalize for ~60fps
+                this.y += this.vy * (deltaTime / 16);
+                
+                // Update visual position
+                this.element.style.left = this.x + 'px';
+                this.element.style.top = this.y + 'px';
+                
+                // Check for collision with target
+                if (this.checkCollision()) {
+                    this.hitTarget();
+                    return false;
+                }
+                
+                // Check if projectile went off screen
+                if (this.x < -50 || this.x > window.innerWidth + 50 || 
+                    this.y < -50 || this.y > window.innerHeight + 50) {
+                    this.destroy();
+                    return false;
+                }
+                
+                return true; // Still active
+            }
+            
+            checkCollision() {
+                if (!this.target || this.target.isDestroyed) return false;
+                
+                const targetRect = this.target.element.getBoundingClientRect();
+                const targetCenterX = targetRect.left + targetRect.width / 2;
+                const targetCenterY = targetRect.top + targetRect.height / 2;
+                
+                const distance = Math.sqrt(
+                    Math.pow(this.x - targetCenterX, 2) + 
+                    Math.pow(this.y - targetCenterY, 2)
+                );
+                
+                return distance <= 25; // Collision radius
+            }
+            
+            hitTarget() {
+                console.log('Homing projectile hit target!');
+                
+                // Use spaceship controller's explode logic
+                if (spaceshipController) {
+                    spaceshipController.explodeWord(this.target);
+                }
+                
+                this.destroy();
+            }
+            
+            destroy() {
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                }
+                
+                // Remove from active projectiles array
+                const index = activeProjectiles.indexOf(this);
+                if (index > -1) {
+                    activeProjectiles.splice(index, 1);
+                }
+            }
         }
         
         function calculateBoosterFrequency() {
@@ -1614,7 +1768,7 @@
                     Schiff: <span id="aggression-level" class="aggression-level calm">RUHIG</span>
                 </div>
                 <div class="ui-element" style="color: #ff88aa;">
-                    Schusstypen: <span id="shot-chances" style="font-size: 14px;">🟢57% 🟡28% 🔴10% ⚡5%</span>
+                    Schusstypen: <span id="shot-chances" style="font-size: 14px;">🟢35% 🟡23% 🔴17% ⚡25%</span>
                 </div>
                 <div class="ui-element shield-system">
                     <div class="shield-counter">
@@ -1694,9 +1848,9 @@
                 const isEarlyGame = remainingWords >= 7;
                 
                 if (isEarlyGame) {
-                    shotChancesElement.textContent = '🟢47% 🟡25% 🔴13% ⚡15%';
+                    shotChancesElement.textContent = '🟢35% 🟡23% 🔴17% ⚡25%';
                 } else {
-                    shotChancesElement.textContent = '🟢24% 🟡31% 🔴30% ⚡15%';
+                    shotChancesElement.textContent = '🟢20% 🟡28% 🔴27% ⚡25%';
                 }
             }
             
@@ -1945,6 +2099,12 @@
             });
             floatingTexts = [];
             
+            // Clear active homing projectiles
+            activeProjectiles.forEach(projectile => {
+                projectile.destroy();
+            });
+            activeProjectiles = [];
+            
             // Show info overlay again
             gameStarted = false;
             gameStartTime = 0;
@@ -2008,7 +2168,7 @@
                 this.targetRotation = 0;
                 this.isChasing = false;
                 this.chaseTarget = null;
-                this.shootingRadius = Math.min(containerWidth, containerHeight) / 5; // Shooting range (+20% increased)
+                this.shootingRadius = Math.min(containerWidth, containerHeight) / 5 * 3.0; // Shooting range (3x multiplier)
                 this.radarRadius = Math.min(containerWidth, containerHeight) / 4 * 1.35; // Radar detection range (35% larger for earlier warnings)
                 this.MAX_FIRING_ANGLE = 30; // ±30° Schusswinkel vor dem Schiff
                 this.COLLISION_RADIUS = 25; // Kollisions-Radius für Projektil-Treffer
@@ -2606,82 +2766,82 @@
                 
                 const random = Math.random() * 100;
                 
-                // Ultra shot always has 15% chance
-                if (random < 15) {
+                // Ultra shot now has 25% chance
+                if (random < 25) {
                     return {
                         type: 'ultra',
                         name: 'Ultra-Nachschuss',
-                        speedMultiplier: 1.0,
-                        chance: 15,
+                        speedMultiplier: 1.25, // +25% base speed increase
+                        chance: 25,
                         rangeMultiplier: 3.0,
                         color: '#aa44ff',
                         size: 18
                     };
                 }
                 
-                // Adjust remaining percentages (85% total)
+                // Adjust remaining percentages (75% total)
                 if (isEarlyGame) {
-                    // Early game: 47% normal, 25% yellow, 13% red (scaled to 85%)
-                    if (random < 15 + 47) { // 15-62%
+                    // Early game: 35% normal, 23% yellow, 17% red (scaled to 75%)
+                    if (random < 25 + 35) { // 25-60%
                         return {
                             type: 'normal',
                             name: 'Grün (Normal)',
-                            speedMultiplier: 1.0,
-                            chance: 47,
-                            rangeMultiplier: 1.0,
+                            speedMultiplier: 1.25, // +25% base speed increase
+                            chance: 35,
+                            rangeMultiplier: 3.0, // 3x range for all shots
                             color: '#44ff44',
                             size: 12
                         };
-                    } else if (random < 15 + 47 + 25) { // 62-87%
+                    } else if (random < 25 + 35 + 23) { // 60-83%
                         return {
                             type: 'yellow',
                             name: 'Gelb (+15%)',
-                            speedMultiplier: 1.15,
-                            chance: 25,
-                            rangeMultiplier: 1.0,
+                            speedMultiplier: 1.44, // 1.15 * 1.25 = 1.44 (+44% total)
+                            chance: 23,
+                            rangeMultiplier: 3.0, // 3x range for all shots
                             color: '#ffff44',
                             size: 14
                         };
-                    } else { // 87-100%
+                    } else { // 83-100%
                         return {
                             type: 'red',
                             name: 'Rot (+30%)',
-                            speedMultiplier: 1.30,
-                            chance: 13,
-                            rangeMultiplier: 1.0,
+                            speedMultiplier: 1.63, // 1.30 * 1.25 = 1.63 (+63% total)
+                            chance: 17,
+                            rangeMultiplier: 3.0, // 3x range for all shots
                             color: '#ff4444',
                             size: 16
                         };
                     }
                 } else {
-                    // Late game: 24% normal, 31% yellow, 30% red (scaled to 85%)
-                    if (random < 15 + 24) { // 15-39%
+                    // Late game: 20% normal, 28% yellow, 27% red (scaled to 75%)
+                    if (random < 25 + 20) { // 25-45%
                         return {
                             type: 'normal',
                             name: 'Grün (Normal)',
-                            speedMultiplier: 1.0,
-                            chance: 24,
-                            rangeMultiplier: 1.0,
+                            speedMultiplier: 1.25, // +25% base speed increase
+                            chance: 20,
+                            rangeMultiplier: 3.0, // 3x range for all shots
                             color: '#44ff44',
                             size: 12
                         };
-                    } else if (random < 15 + 24 + 31) { // 39-70%
+                    } else if (random < 25 + 20 + 28) { // 45-73%
                         return {
                             type: 'yellow',
                             name: 'Gelb (+15%)',
-                            speedMultiplier: 1.15,
-                            chance: 31,
-                            rangeMultiplier: 1.0,
+                            speedMultiplier: 1.44, // 1.15 * 1.25 = 1.44 (+44% total)
+                            chance: 28,
+                            rangeMultiplier: 3.0, // 3x range for all shots
                             color: '#ffff44',
                             size: 14
                         };
-                    } else { // 70-100%
+                    } else { // 73-100%
                         return {
                             type: 'red',
                             name: 'Rot (+30%)',
-                            speedMultiplier: 1.30,
-                            chance: 30,
-                            rangeMultiplier: 1.0,
+                            speedMultiplier: 1.63, // 1.30 * 1.25 = 1.63 (+63% total)
+                            chance: 27,
+                            rangeMultiplier: 3.0, // 3x range for all shots
                             color: '#ff4444',
                             size: 16
                         };
@@ -2735,9 +2895,26 @@
                     console.log('Audio not available:', e);
                 }
                 
-                // Create projectile with appropriate styling
+                // Handle ultra shots with homing projectiles
+                if (shotType.type === 'ultra') {
+                    // Create homing projectile instead of regular projectile
+                    const baseSpeed = 480 * shotType.speedMultiplier; // Base projectile speed * 1.25
+                    const homingProjectile = new HomingProjectile(
+                        spaceshipX, 
+                        spaceshipY, 
+                        target, 
+                        baseSpeed * 0.001, // Convert to pixels per ms
+                        0.04 // Turn rate
+                    );
+                    activeProjectiles.push(homingProjectile);
+                    
+                    console.log('Homing projectile created for ultra shot');
+                    return; // Exit early for ultra shots
+                }
+                
+                // Regular projectiles for non-ultra shots
                 const projectile = document.createElement('div');
-                projectile.className = shotType.type === 'ultra' ? 'laser ultra-laser' : 'laser';
+                projectile.className = 'laser';
                 projectile.style.left = spaceshipX + 'px';
                 projectile.style.top = spaceshipY + 'px';
                 
@@ -2752,8 +2929,8 @@
                 const deltaX = targetX - spaceshipX;
                 const deltaY = targetY - spaceshipY;
                 const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                const baseSpeed = 480; // Base projectile speed
-                const duration = distance / (baseSpeed * shotType.speedMultiplier);
+                const baseSpeed = 480 * shotType.speedMultiplier; // Base projectile speed with +25% increase
+                const duration = distance / baseSpeed;
                 
                 // Collision detection variables
                 let collisionDetected = false;
@@ -3936,6 +4113,17 @@
                         text.update();
                     }
                 });
+                
+                // Update homing projectiles
+                if (gameStarted && activeProjectiles.length > 0) {
+                    for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+                        const projectile = activeProjectiles[i];
+                        if (!projectile.update(16)) { // Assuming ~60fps (16ms per frame)
+                            // Projectile was destroyed or expired, remove from array
+                            activeProjectiles.splice(i, 1);
+                        }
+                    }
+                }
                 
                 // Update beacon mine system
                 if (gameStarted) {
