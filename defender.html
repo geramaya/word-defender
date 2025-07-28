@@ -1323,68 +1323,47 @@
             
             update(deltaTime) {
                 this.age += deltaTime;
-                
-                // Check if projectile has expired
-                if (this.age >= this.lifespan) {
+
+                // Lebensdauer oder Ziel verloren -> zerstören
+                if (this.age >= this.lifespan || !this.target || this.target.isDestroyed) {
                     this.destroy();
                     return false;
                 }
-                
-                // Check if target still exists and is not destroyed
-                if (!this.target || this.target.isDestroyed) {
-                    this.destroy();
-                    return false;
-                }
-                
-                // Get current target position
+
                 const targetRect = this.target.element.getBoundingClientRect();
-                const targetX = targetRect.left + targetRect.width / 2;
-                const targetY = targetRect.top + targetRect.height / 2;
-                
-                // Calculate direction to target
-                const deltaX = targetX - this.x;
-                const deltaY = targetY - this.y;
-                const distanceToTarget = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                
-                if (distanceToTarget > 0) {
-                    // Calculate desired velocity direction
-                    const desiredVx = (deltaX / distanceToTarget) * this.speed;
-                    const desiredVy = (deltaY / distanceToTarget) * this.speed;
-                    
-                    // Gradually adjust current velocity toward desired velocity (homing behavior)
-                    this.vx += (desiredVx - this.vx) * this.turnRate;
-                    this.vy += (desiredVy - this.vy) * this.turnRate;
-                    
-                    // Normalize velocity to maintain consistent speed
-                    const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                    if (currentSpeed > 0) {
-                        this.vx = (this.vx / currentSpeed) * this.speed;
-                        this.vy = (this.vy / currentSpeed) * this.speed;
-                    }
-                }
-                
-                // Update position
-                this.x += this.vx * (deltaTime / 16); // Normalize for ~60fps
-                this.y += this.vy * (deltaTime / 16);
-                
-                // Update visual position
-                this.element.style.left = this.x + 'px';
-                this.element.style.top = this.y + 'px';
-                
-                // Check for collision with target
-                if (this.checkCollision()) {
+                const targetX = targetRect.left + this.target.width / 2;
+                const targetY = targetRect.top + this.target.height / 2;
+
+                // 1. Berechne Vektor zum Ziel
+                const dirX = targetX - this.x;
+                const dirY = targetY - this.y;
+                const distance = Math.sqrt(dirX * dirX + dirY * dirY);
+
+                // Kollision prüfen
+                if (distance < 25) {
                     this.hitTarget();
                     return false;
                 }
-                
-                // Check if projectile went off screen
-                if (this.x < -50 || this.x > window.innerWidth + 50 || 
-                    this.y < -50 || this.y > window.innerHeight + 50) {
-                    this.destroy();
-                    return false;
-                }
-                
-                return true; // Still active
+
+                // 2. Normalisiere Richtungsvektor
+                const normDirX = dirX / distance;
+                const normDirY = dirY / distance;
+
+                // 3. Berechne "Lenk"-Kraft und passe Geschwindigkeit an
+                this.vx += (normDirX * this.speed - this.vx) * this.turnRate;
+                this.vy += (normDirY * this.speed - this.vy) * this.turnRate;
+
+                // 4. Normalisiere die Geschwindigkeit, um konstanten Speed zu halten
+                const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                this.vx = (this.vx / currentSpeed) * this.speed;
+                this.vy = (this.vy / currentSpeed) * this.speed;
+
+                // 5. Aktualisiere Position basierend auf Zeit (korrekte Umrechnung)
+                this.x += this.vx * (deltaTime / 1000);
+                this.y += this.vy * (deltaTime / 1000);
+
+                this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
+                return true; // Projektil ist noch aktiv
             }
             
             checkCollision() {
@@ -2168,8 +2147,8 @@
                 this.targetRotation = 0;
                 this.isChasing = false;
                 this.chaseTarget = null;
-                this.shootingRadius = Math.min(containerWidth, containerHeight) / 5 * 3.0; // Shooting range (3x multiplier)
-                this.radarRadius = Math.min(containerWidth, containerHeight) / 4 * 1.35; // Radar detection range (35% larger for earlier warnings)
+                this.shootingRadius = Math.min(containerWidth, containerHeight) / 2.5; // War / 5 -> Verdoppelt
+                this.radarRadius = Math.min(containerWidth, containerHeight) / 2;    // War / 4 * 1.35 -> Deutlich vergrößert
                 this.MAX_FIRING_ANGLE = 30; // ±30° Schusswinkel vor dem Schiff
                 this.COLLISION_RADIUS = 25; // Kollisions-Radius für Projektil-Treffer
                 this.targetingWord = null;
@@ -2897,19 +2876,17 @@
                 
                 // Handle ultra shots with homing projectiles
                 if (shotType.type === 'ultra') {
-                    // Create homing projectile instead of regular projectile
-                    const baseSpeed = 480 * shotType.speedMultiplier; // Base projectile speed * 1.25
+                    const baseSpeed = 480 * 1.25; // Basis-Geschwindigkeit (600 p/s)
                     const homingProjectile = new HomingProjectile(
-                        spaceshipX, 
-                        spaceshipY, 
-                        target, 
-                        baseSpeed * 0.001, // Convert to pixels per ms
-                        0.04 // Turn rate
+                        spaceshipX,
+                        spaceshipY,
+                        target,
+                        baseSpeed, // Übergib die volle Geschwindigkeit (in Pixel pro Sekunde)
+                        0.1 // Erhöhe die Wenderate für aggressivere Kurven
                     );
                     activeProjectiles.push(homingProjectile);
-                    
-                    console.log('Homing projectile created for ultra shot');
-                    return; // Exit early for ultra shots
+                    console.log('Homing projectile launched at', target.element.textContent);
+                    return; // Wichtig: Beende die Funktion hier für Ultra-Schüsse
                 }
                 
                 // Regular projectiles for non-ultra shots
