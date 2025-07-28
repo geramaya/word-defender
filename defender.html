@@ -992,6 +992,7 @@
         let floatingTexts = [];
         let spaceshipShootTimer;
         let spaceshipController;
+        let secondSpaceshipController = null;
         let restartButton = null;
         let gameStarted = false;
         let gameStartTime = 0;
@@ -1033,9 +1034,6 @@
         let attackInterval = 10000; // Start at 10 seconds
         let hasFirstAttackHappened = false;
         let defendedWordsCounter = 0;
-            
-            // Reset pulsar system
-            resetPulsar();
         
         // Sound system
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1688,53 +1686,72 @@
             console.log('Score streak, defended counter, and beacon deployment counter reset to 0');
         }
         
-        function startGame() {
-            gameStarted = true;
-            gameStartTime = Date.now();
-            
-            // Initialize shield system
-            shieldCount = 3;
-            lastShieldTime = Date.now();
-            protectedWords.clear();
-            
-            // Initialize scoring system
-            currentScore = 0;
-            consecutiveSuccessfulDefenses = 0;
-            attackInterval = 10000; // Reset to 10 seconds
-            hasFirstAttackHappened = false;
-            defendedWordsCounter = 0;
-            
-            // Reset pulsar system
-            resetPulsar();
-            
-            // Initialize beacon system
-            beaconDeploymentCounter = 0;
-            nextBeaconAt = 4;
-            spaceBeacons.forEach(beacon => beacon.destroy());
-            spaceBeacons = [];
-            
-            // Initialize floating mine system
-            stopMineSpawning();
-            startMineSpawning();
-            
-            // Resume audio context (required by browser security)
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-            
+        async function startGame() {
             const overlay = document.querySelector('.info-overlay');
             if (overlay) {
                 overlay.remove();
             }
-            initializeGame();
+            
+            // Zuerst alles zurücksetzen und initialisieren.
+            shieldCount = 3;
+            lastShieldTime = 0; // Wichtig für den ersten Cooldown-Timer
+            protectedWords.clear();
+            currentScore = 0;
+            consecutiveSuccessfulDefenses = 0;
+            attackInterval = 10000;
+            hasFirstAttackHappened = false;
+            defendedWordsCounter = 0;
+            resetPulsar();
+            beaconDeploymentCounter = 0;
+            nextBeaconAt = 4;
+            spaceBeacons.forEach(beacon => beacon.destroy());
+            spaceBeacons = [];
+            stopMineSpawning();
+            
+            // Reset second hunter
+            secondSpaceshipController = null;
+            
+            // Warten, bis alle Wörter geladen und die Objekte erstellt sind.
+            await initializeGame();
+            
+            // Erst NACH der Initialisierung das Spiel als gestartet markieren.
+            gameStarted = true;
+            gameStartTime = Date.now();
+            
+            // UI erstellen und aktualisieren.
             createGameUI();
             updateGameUI();
+            startMineSpawning(); // Minen-Spawn erst jetzt starten.
+
+            // Audio-Kontext fortsetzen, falls nötig.
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
         }
         
         function checkForGameEnd() {
-            const remainingWords = floatingTexts.filter(word => !word.isDestroyed);
-            if (remainingWords.length === 0 && !document.querySelector('.info-overlay')) {
-                showRestartButton();
+            // Diese Prüfung läuft nur, wenn das Spiel aktiv ist und kein Overlay angezeigt wird.
+            if (gameStarted && !document.querySelector('.info-overlay')) {
+                const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
+                if (remainingWords === 0) {
+                    console.log("Zentrale Prüfung: Alle Wörter zerstört! Spiel endet.");
+                    
+                    // Spiel anhalten und Endsequenz einleiten
+                    gameStarted = false; // Stoppt die Logik in der animate-Schleife
+                    showRestartButton(); // Zeigt den Highscore-Bildschirm an
+                }
+            }
+        }
+
+        function checkForSecondHunter() {
+            // Nur einmal ausführen, wenn der zweite Jäger noch nicht existiert.
+            if (!secondSpaceshipController) {
+                const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
+                
+                if (remainingWords <= 3) {
+                    console.log('3 ODER WENIGER WORTE VERBLEIBEND! EIN ZWEITER JÄGER ERSCHEINT!');
+                    secondSpaceshipController = new SpaceshipController();
+                }
             }
         }
 
@@ -2041,86 +2058,76 @@
         }
         
         function restartGame() {
-            // Remove game over overlay instead of restart button
             const overlay = document.querySelector('.info-overlay');
             if (overlay) {
                 overlay.remove();
             }
-            
-            // Remove restart button if it exists (backward compatibility)
+
             if (restartButton) {
                 restartButton.remove();
                 restartButton = null;
             }
-            
-            // Remove game UI
+
             const gameUI = document.getElementById('game-ui');
             if (gameUI) {
                 gameUI.remove();
             }
-            
-            // Remove emergency overlay
+
             const emergencyOverlay = document.getElementById('emergency-overlay');
             if (emergencyOverlay) {
                 emergencyOverlay.remove();
             }
-            
-            // Clear spaceship timer
+
             if (spaceshipShootTimer) {
-                clearTimeout(spaceshipShootTimer); // Changed from clearInterval to clearTimeout
-                clearInterval(spaceshipShootTimer); // Also clear if it's an interval
+                clearTimeout(spaceshipShootTimer);
+                clearInterval(spaceshipShootTimer);
             }
-            
-            // Clear radar ping interval
+
             if (radarPingInterval) {
                 clearInterval(radarPingInterval);
                 radarPingInterval = null;
             }
-            
-            // Remove spaceship
-            if (spaceshipController && spaceshipController.spaceship) {
+
+            // KORREKTUR: Entferne BEIDE Raumschiffe und ihre Controller
+            if (spaceshipController && spaceshipController.spaceship && spaceshipController.spaceship.parentNode) {
                 spaceshipController.spaceship.remove();
             }
-            
-            // Clear remaining words
+            if (secondSpaceshipController && secondSpaceshipController.spaceship && secondSpaceshipController.spaceship.parentNode) {
+                secondSpaceshipController.spaceship.remove();
+            }
+            spaceshipController = null;
+            secondSpaceshipController = null; // WICHTIG: Setzt den zweiten Jäger zurück
+
             floatingTexts.forEach(word => {
                 if (word.element && word.element.parentNode) {
                     word.element.parentNode.removeChild(word.element);
                 }
             });
             floatingTexts = [];
-            
-            // Clear active homing projectiles
+
             activeProjectiles.forEach(projectile => {
                 projectile.destroy();
             });
             activeProjectiles = [];
-            
-            // Show info overlay again
+
+            // Spielstatus vollständig zurücksetzen
             gameStarted = false;
             gameStartTime = 0;
-            
-            // Reset shield system
             shieldCount = 3;
             lastShieldTime = 0;
             protectedWords.clear();
-            
-            // Reset scoring system
             currentScore = 0;
             consecutiveSuccessfulDefenses = 0;
             attackInterval = 10000;
             hasFirstAttackHappened = false;
             defendedWordsCounter = 0;
-            
-            // Reset pulsar system
             resetPulsar();
             
+            // Info-Overlay für den Neustart anzeigen
             showInfoOverlay();
         }
         
         async function initializeGame() {
-            if (!gameStarted) return;
-            
             await loadWords();
             
             const container = document.querySelector('.container');
@@ -3053,10 +3060,6 @@
                 resetScoreStreak();
                 
                 target.explode();
-                // Check if game should end after explosion
-                setTimeout(() => {
-                    checkForGameEnd();
-                }, 100);
             }
         }
         
@@ -4092,9 +4095,14 @@
             showInfoOverlay();
             
             function animate() {
-                // Update spaceship position
+                // Update des ersten Raumschiffs
                 if (spaceshipController && gameStarted) {
                     spaceshipController.update();
+                }
+                
+                // Update des zweiten Raumschiffs, falls es existiert
+                if (secondSpaceshipController && gameStarted) {
+                    secondSpaceshipController.update();
                 }
                 
                 floatingTexts.forEach(text => {
@@ -4103,49 +4111,42 @@
                     }
                 });
                 
-                // Update homing projectiles
+                // Update der zielsuchenden Projektile
                 if (gameStarted && activeProjectiles.length > 0) {
                     for (let i = activeProjectiles.length - 1; i >= 0; i--) {
                         const projectile = activeProjectiles[i];
-                        if (!projectile.update(16)) { // Assuming ~60fps (16ms per frame)
-                            // Projectile was destroyed or expired, remove from array
+                        if (!projectile.update(16)) {
                             activeProjectiles.splice(i, 1);
                         }
                     }
                 }
                 
-                // Update beacon mine system
+                // Alle anderen Spiel-Updates
                 if (gameStarted) {
                     updateBeacons();
                     updateFloatingMines();
-                    
-                    // Update pulsar endgame system
-                    if (gameStarted) {
-                        updatePulsarPhase();
-                        
-                        // Handle pulsar timing and cycles
-                        if (pulsarPhase > 0) {
-                            pulsarTimer += 16; // Assuming ~60fps (16ms per frame)
+                    updatePulsarPhase();
+                    checkForSecondHunter(); // Prüft, ob der zweite Jäger gerufen werden soll
+
+                    if (pulsarPhase > 0) {
+                        pulsarTimer += 16;
+                        if (pulsarTimer >= pulsarCycleTime) {
+                            pulsarActive = !pulsarActive;
+                            pulsarTimer = 0;
                             
-                            if (pulsarTimer >= pulsarCycleTime) {
-                                // Toggle pulsar active state
-                                pulsarActive = !pulsarActive;
-                                pulsarTimer = 0;
-                                
-                                if (pulsarActive) {
-                                    pulsarCycleCount++;
-                                    // Create wave when starting attraction
-                                    createPulsarWave(pulsarPhase === 1 ? "phase1" : "phase2");
-                                }
-                            }
-                            
-                            // Apply attraction force during active cycles
                             if (pulsarActive) {
-                                applyPulsarAttraction(16);
+                                pulsarCycleCount++;
+                                createPulsarWave(pulsarPhase === 1 ? "phase1" : "phase2");
                             }
+                        }
+                        if (pulsarActive) {
+                            applyPulsarAttraction(16);
                         }
                     }
                 }
+                
+                // NEU: Die zentrale Game-Over-Prüfung in jedem Frame
+                checkForGameEnd();
                 
                 requestAnimationFrame(animate);
             }
