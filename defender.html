@@ -992,6 +992,7 @@
         let floatingTexts = [];
         let spaceshipShootTimer;
         let spaceshipController;
+        let secondSpaceshipController = null;
         let restartButton = null;
         let gameStarted = false;
         let gameStartTime = 0;
@@ -1033,9 +1034,6 @@
         let attackInterval = 10000; // Start at 10 seconds
         let hasFirstAttackHappened = false;
         let defendedWordsCounter = 0;
-            
-            // Reset pulsar system
-            resetPulsar();
         
         // Sound system
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1688,53 +1686,65 @@
             console.log('Score streak, defended counter, and beacon deployment counter reset to 0');
         }
         
-        function startGame() {
-            gameStarted = true;
-            gameStartTime = Date.now();
-            
-            // Initialize shield system
-            shieldCount = 3;
-            lastShieldTime = Date.now();
-            protectedWords.clear();
-            
-            // Initialize scoring system
-            currentScore = 0;
-            consecutiveSuccessfulDefenses = 0;
-            attackInterval = 10000; // Reset to 10 seconds
-            hasFirstAttackHappened = false;
-            defendedWordsCounter = 0;
-            
-            // Reset pulsar system
-            resetPulsar();
-            
-            // Initialize beacon system
-            beaconDeploymentCounter = 0;
-            nextBeaconAt = 4;
-            spaceBeacons.forEach(beacon => beacon.destroy());
-            spaceBeacons = [];
-            
-            // Initialize floating mine system
-            stopMineSpawning();
-            startMineSpawning();
-            
-            // Resume audio context (required by browser security)
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-            
+        async function startGame() {
             const overlay = document.querySelector('.info-overlay');
             if (overlay) {
                 overlay.remove();
             }
-            initializeGame();
+            
+            // Zuerst alles zurücksetzen und initialisieren.
+            shieldCount = 3;
+            lastShieldTime = 0; // Wichtig für den ersten Cooldown-Timer
+            protectedWords.clear();
+            currentScore = 0;
+            consecutiveSuccessfulDefenses = 0;
+            attackInterval = 10000;
+            hasFirstAttackHappened = false;
+            defendedWordsCounter = 0;
+            resetPulsar();
+            beaconDeploymentCounter = 0;
+            nextBeaconAt = 4;
+            spaceBeacons.forEach(beacon => beacon.destroy());
+            spaceBeacons = [];
+            stopMineSpawning();
+            
+            // Reset second hunter
+            secondSpaceshipController = null;
+            
+            // Warten, bis alle Wörter geladen und die Objekte erstellt sind.
+            await initializeGame();
+            
+            // Erst NACH der Initialisierung das Spiel als gestartet markieren.
+            gameStarted = true;
+            gameStartTime = Date.now();
+            
+            // UI erstellen und aktualisieren.
             createGameUI();
             updateGameUI();
+            startMineSpawning(); // Minen-Spawn erst jetzt starten.
+
+            // Audio-Kontext fortsetzen, falls nötig.
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
         }
         
         function checkForGameEnd() {
             const remainingWords = floatingTexts.filter(word => !word.isDestroyed);
             if (remainingWords.length === 0 && !document.querySelector('.info-overlay')) {
                 showRestartButton();
+            }
+        }
+
+        function checkForSecondHunter() {
+            // Nur einmal ausführen, wenn der zweite Jäger noch nicht existiert.
+            if (!secondSpaceshipController) {
+                const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
+                
+                if (remainingWords <= 3) {
+                    console.log('WENIGER ALS 4 WORTE VERBLEIBEND! EIN ZWEITER JÄGER ERSCHEINT!');
+                    secondSpaceshipController = new SpaceshipController();
+                }
             }
         }
 
@@ -2119,8 +2129,6 @@
         }
         
         async function initializeGame() {
-            if (!gameStarted) return;
-            
             await loadWords();
             
             const container = document.querySelector('.container');
@@ -4095,6 +4103,16 @@
                 // Update spaceship position
                 if (spaceshipController && gameStarted) {
                     spaceshipController.update();
+                }
+                
+                // Check for second hunter when game started
+                if (gameStarted) {
+                    checkForSecondHunter();
+                }
+                
+                // Update second spaceship if it exists
+                if (secondSpaceshipController && gameStarted) {
+                    secondSpaceshipController.update();
                 }
                 
                 floatingTexts.forEach(text => {
