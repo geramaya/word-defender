@@ -1742,7 +1742,7 @@
                 const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
                 
                 if (remainingWords <= 3) {
-                    console.log('WENIGER ALS 4 WORTE VERBLEIBEND! EIN ZWEITER JÄGER ERSCHEINT!');
+                    console.log('3 ODER WENIGER WORTE VERBLEIBEND! EIN ZWEITER JÄGER ERSCHEINT!');
                     secondSpaceshipController = new SpaceshipController();
                 }
             }
@@ -2051,80 +2051,73 @@
         }
         
         function restartGame() {
-            // Remove game over overlay instead of restart button
             const overlay = document.querySelector('.info-overlay');
             if (overlay) {
                 overlay.remove();
             }
-            
-            // Remove restart button if it exists (backward compatibility)
+
             if (restartButton) {
                 restartButton.remove();
                 restartButton = null;
             }
-            
-            // Remove game UI
+
             const gameUI = document.getElementById('game-ui');
             if (gameUI) {
                 gameUI.remove();
             }
-            
-            // Remove emergency overlay
+
             const emergencyOverlay = document.getElementById('emergency-overlay');
             if (emergencyOverlay) {
                 emergencyOverlay.remove();
             }
-            
-            // Clear spaceship timer
+
             if (spaceshipShootTimer) {
-                clearTimeout(spaceshipShootTimer); // Changed from clearInterval to clearTimeout
-                clearInterval(spaceshipShootTimer); // Also clear if it's an interval
+                clearTimeout(spaceshipShootTimer);
+                clearInterval(spaceshipShootTimer);
             }
-            
-            // Clear radar ping interval
+
             if (radarPingInterval) {
                 clearInterval(radarPingInterval);
                 radarPingInterval = null;
             }
-            
-            // Remove spaceship
-            if (spaceshipController && spaceshipController.spaceship) {
+
+            // Entferne BEIDE Raumschiffe
+            if (spaceshipController && spaceshipController.spaceship && spaceshipController.spaceship.parentNode) {
                 spaceshipController.spaceship.remove();
             }
-            
-            // Clear remaining words
+            if (secondSpaceshipController && secondSpaceshipController.spaceship && secondSpaceshipController.spaceship.parentNode) {
+                secondSpaceshipController.spaceship.remove();
+            }
+            // Setze BEIDE Controller zurück
+            spaceshipController = null;
+            secondSpaceshipController = null;
+
             floatingTexts.forEach(word => {
                 if (word.element && word.element.parentNode) {
                     word.element.parentNode.removeChild(word.element);
                 }
             });
             floatingTexts = [];
-            
-            // Clear active homing projectiles
+
             activeProjectiles.forEach(projectile => {
                 projectile.destroy();
             });
             activeProjectiles = [];
-            
-            // Show info overlay again
+
+            // Spielstatus vollständig zurücksetzen
             gameStarted = false;
             gameStartTime = 0;
-            
-            // Reset shield system
             shieldCount = 3;
             lastShieldTime = 0;
             protectedWords.clear();
-            
-            // Reset scoring system
             currentScore = 0;
             consecutiveSuccessfulDefenses = 0;
             attackInterval = 10000;
             hasFirstAttackHappened = false;
             defendedWordsCounter = 0;
-            
-            // Reset pulsar system
             resetPulsar();
             
+            // Info-Overlay für den Neustart anzeigen
             showInfoOverlay();
         }
         
