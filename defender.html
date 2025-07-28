@@ -1301,6 +1301,9 @@
                 // Create DOM element
                 this.element = this.createElement();
                 document.querySelector('.container').appendChild(this.element);
+                
+                // NEUE ZEILE: Markiere das Zielwort visuell.
+                if (this.target) this.target.element.classList.add('targeted');
             }
             
             createElement() {
@@ -1401,6 +1404,11 @@
                     this.element.parentNode.removeChild(this.element);
                 }
                 
+                // NEU: Entferne die visuelle Markierung vom Zielwort.
+                if (this.target && this.target.element) {
+                    this.target.element.classList.remove('targeted');
+                }
+
                 // Remove from active projectiles array
                 const index = activeProjectiles.indexOf(this);
                 if (index > -1) {
@@ -2152,7 +2160,7 @@
                 this.isChasing = false;
                 this.chaseTarget = null;
                 this.shootingRadius = Math.min(containerWidth, containerHeight) / 2.5; // War / 5 -> Verdoppelt
-                this.radarRadius = Math.min(containerWidth, containerHeight) / 2;    // War / 4 * 1.35 -> Deutlich vergrößert
+                this.radarRadius = Math.min(containerWidth, containerHeight) / 1.5; // War / 2 -> Deutlich vergrößert für längere Vorwarnzeit
                 this.MAX_FIRING_ANGLE = 30; // ±30° Schusswinkel vor dem Schiff
                 this.COLLISION_RADIUS = 25; // Kollisions-Radius für Projektil-Treffer
                 this.targetingWord = null;
@@ -4157,42 +4165,56 @@
                 if (e.code === 'Space' && gameStarted) {
                     e.preventDefault();
                     
-                    // Always consume a shield when spacebar is pressed (if available)
                     if (shieldCount > 0) {
-                        // Consume shield first
-                        shieldCount--;
-                        console.log('Shield consumed, remaining:', shieldCount);
-                        
-                        // Find currently targeted word from any threat
                         let targetedWord = null;
-                        let threatSource = null;
-                        
-                        // Check spaceship targeting
-                        if (spaceshipController && spaceshipController.targetingWord) {
-                            targetedWord = spaceshipController.targetingWord;
-                            threatSource = 'spaceship';
-                        }
-                        
-                        // Check floating mine targeting (prioritize if both are targeting)
-                        for (let mine of floatingMines) {
-                            if (mine.isTargeting && mine.targetingWord) {
-                                targetedWord = mine.targetingWord;
-                                threatSource = 'floating-mine';
-                                break; // Floating mines have priority
+                        let threatSource = 'unbekannt';
+
+                        // HÖCHSTE PRIORITÄT: Prüfe, ob eine zielsuchende Rakete aktiv ist.
+                        if (activeProjectiles.length > 0) {
+                            const activeHomingProjectile = activeProjectiles[0];
+                            if (activeHomingProjectile && activeHomingProjectile.target && !activeHomingProjectile.target.isDestroyed) {
+                                targetedWord = activeHomingProjectile.target;
+                                threatSource = 'Ultraschuss-Rakete';
                             }
                         }
                         
+                        // Wenn keine Rakete aktiv ist, prüfe die anderen Bedrohungen.
+                        if (!targetedWord) {
+                            // Prüfung der Minen (höhere Priorität als das Raumschiff selbst)
+                            for (let mine of floatingMines) {
+                                if (mine.isTargeting && mine.targetingWord) {
+                                    targetedWord = mine.targetingWord;
+                                    threatSource = 'Mobile Mine';
+                                    break; 
+                                }
+                            }
+                            if (!targetedWord) {
+                                for (let beacon of spaceBeacons) {
+                                    if (beacon.isTargeting && beacon.targetingWord) {
+                                        targetedWord = beacon.targetingWord;
+                                        threatSource = 'Statische Mine';
+                                        break;
+                                    }
+                                }
+                            }
+                            // Letzte Priorität: Das Raumschiff, das gerade ein Ziel anvisiert.
+                            if (!targetedWord && spaceshipController && spaceshipController.targetingWord) {
+                                targetedWord = spaceshipController.targetingWord;
+                                threatSource = 'Raumschiff';
+                            }
+                        }
+
+                        // Wenn ein Ziel durch eine beliebige Bedrohung identifiziert wurde:
                         if (targetedWord) {
                             if (activateShield(targetedWord)) {
-                                console.log(`Shield activated on targeted word against ${threatSource}`);
-                            } else {
-                                console.log('Shield wasted - word already protected');
+                                shieldCount--; // Schild erst hier verbrauchen.
+                                console.log(`Schild aktiviert auf "${targetedWord.element.textContent}" gegen ${threatSource}. Verbleibend: ${shieldCount}`);
                             }
                         } else {
-                            console.log('Shield wasted - no active threats');
+                            console.log('Schild-Einsatz nicht möglich: Keine aktive Bedrohung.');
                         }
                     } else {
-                        console.log('No shields available');
+                        console.log('Keine Schilde verfügbar.');
                     }
                 }
             });
