@@ -1331,8 +1331,9 @@
                 }
 
                 const targetRect = this.target.element.getBoundingClientRect();
-                const targetX = targetRect.left + this.target.width / 2;
-                const targetY = targetRect.top + this.target.height / 2;
+                // Wichtig: Die Position des Ziels muss relativ zur Spielfläche (nicht zum Fenster) sein.
+                const targetX = this.target.x + this.target.width / 2;
+                const targetY = this.target.y + this.target.height / 2;
 
                 // 1. Berechne Vektor zum Ziel
                 const dirX = targetX - this.x;
@@ -1358,11 +1359,14 @@
                 this.vx = (this.vx / currentSpeed) * this.speed;
                 this.vy = (this.vy / currentSpeed) * this.speed;
 
-                // 5. Aktualisiere Position basierend auf Zeit (korrekte Umrechnung)
+                // 5. Aktualisiere Position basierend auf Zeit (korrekte Umrechnung in Sekunden)
                 this.x += this.vx * (deltaTime / 1000);
                 this.y += this.vy * (deltaTime / 1000);
 
-                this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
+                // Die Position des DOM-Elements setzen
+                this.element.style.left = this.x + 'px';
+                this.element.style.top = this.y + 'px';
+                
                 return true; // Projektil ist noch aktiv
             }
             
