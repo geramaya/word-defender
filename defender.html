@@ -1730,9 +1730,16 @@
         }
         
         function checkForGameEnd() {
-            const remainingWords = floatingTexts.filter(word => !word.isDestroyed);
-            if (remainingWords.length === 0 && !document.querySelector('.info-overlay')) {
-                showRestartButton();
+            // Diese Prüfung läuft nur, wenn das Spiel aktiv ist und kein Overlay angezeigt wird.
+            if (gameStarted && !document.querySelector('.info-overlay')) {
+                const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
+                if (remainingWords === 0) {
+                    console.log("Zentrale Prüfung: Alle Wörter zerstört! Spiel endet.");
+                    
+                    // Spiel anhalten und Endsequenz einleiten
+                    gameStarted = false; // Stoppt die Logik in der animate-Schleife
+                    showRestartButton(); // Zeigt den Highscore-Bildschirm an
+                }
             }
         }
 
@@ -3053,10 +3060,6 @@
                 resetScoreStreak();
                 
                 target.explode();
-                // Check if game should end after explosion
-                setTimeout(() => {
-                    checkForGameEnd();
-                }, 100);
             }
         }
         
@@ -4141,6 +4144,9 @@
                         }
                     }
                 }
+                
+                // NEU: Die zentrale Game-Over-Prüfung in jedem Frame
+                checkForGameEnd();
                 
                 requestAnimationFrame(animate);
             }
