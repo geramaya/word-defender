@@ -1301,6 +1301,9 @@
                 // Create DOM element
                 this.element = this.createElement();
                 document.querySelector('.container').appendChild(this.element);
+                
+                // NEUE ZEILE: Markiere das Zielwort visuell.
+                if (this.target) this.target.element.classList.add('targeted');
             }
             
             createElement() {
@@ -1401,6 +1404,11 @@
                     this.element.parentNode.removeChild(this.element);
                 }
                 
+                // NEU: Entferne die visuelle Markierung vom Zielwort.
+                if (this.target && this.target.element) {
+                    this.target.element.classList.remove('targeted');
+                }
+
                 // Remove from active projectiles array
                 const index = activeProjectiles.indexOf(this);
                 if (index > -1) {
@@ -4163,7 +4171,6 @@
 
                         // HÖCHSTE PRIORITÄT: Prüfe, ob eine zielsuchende Rakete aktiv ist.
                         if (activeProjectiles.length > 0) {
-                            // Finde die erste aktive Rakete und schütze ihr Ziel.
                             const activeHomingProjectile = activeProjectiles[0];
                             if (activeHomingProjectile && activeHomingProjectile.target && !activeHomingProjectile.target.isDestroyed) {
                                 targetedWord = activeHomingProjectile.target;
@@ -4199,7 +4206,6 @@
 
                         // Wenn ein Ziel durch eine beliebige Bedrohung identifiziert wurde:
                         if (targetedWord) {
-                            // Schild wird nur verbraucht, wenn die Aktivierung erfolgreich war.
                             if (activateShield(targetedWord)) {
                                 shieldCount--; // Schild erst hier verbrauchen.
                                 console.log(`Schild aktiviert auf "${targetedWord.element.textContent}" gegen ${threatSource}. Verbleibend: ${shieldCount}`);
