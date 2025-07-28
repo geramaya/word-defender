@@ -1272,6 +1272,140 @@
             return dynamicSpeed; // 4.8 → 12.0
         }
         
+        // HomingProjectile class for Ultra-Nachschuss
+        class HomingProjectile {
+            constructor(startX, startY, target, speed, turnRate) {
+                this.x = startX;
+                this.y = startY;
+                this.target = target;
+                this.speed = speed;
+                this.turnRate = turnRate || 0.04; // How quickly it can turn toward target
+                this.lifespan = 5000; // 5 seconds max lifetime
+                this.age = 0;
+                
+                // Calculate initial velocity direction toward target
+                const targetRect = target.element.getBoundingClientRect();
+                const targetX = targetRect.left + targetRect.width / 2;
+                const targetY = targetRect.top + targetRect.height / 2;
+                
+                const deltaX = targetX - startX;
+                const deltaY = targetY - startY;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                this.vx = (deltaX / distance) * speed;
+                this.vy = (deltaY / distance) * speed;
+                
+                // Create DOM element
+                this.element = this.createElement();
+                document.querySelector('.container').appendChild(this.element);
+            }
+            
+            createElement() {
+                const projectile = document.createElement('div');
+                projectile.className = 'laser ultra-laser';
+                projectile.style.left = this.x + 'px';
+                projectile.style.top = this.y + 'px';
+                projectile.style.width = '18px';
+                projectile.style.height = '18px';
+                projectile.style.background = 'radial-gradient(circle, #aa44ff 0%, #6600aa 50%, #440088 100%)';
+                projectile.style.border = '3px solid #ffffff';
+                projectile.style.boxShadow = `
+                    0 0 20px #aa44ff,
+                    0 0 40px #aa44ff,
+                    0 0 60px rgba(170, 68, 255, 0.8),
+                    inset 0 0 8px rgba(255, 255, 255, 0.6)`;
+                projectile.style.animation = 'ultraProjectilePulse 0.15s ease-in-out infinite alternate';
+                return projectile;
+            }
+            
+            update(deltaTime) {
+                this.age += deltaTime;
+
+                // Lebensdauer oder Ziel verloren -> zerstören
+                if (this.age >= this.lifespan || !this.target || this.target.isDestroyed) {
+                    this.destroy();
+                    return false;
+                }
+
+                const targetRect = this.target.element.getBoundingClientRect();
+                // Wichtig: Die Position des Ziels muss relativ zur Spielfläche (nicht zum Fenster) sein.
+                const targetX = this.target.x + this.target.width / 2;
+                const targetY = this.target.y + this.target.height / 2;
+
+                // 1. Berechne Vektor zum Ziel
+                const dirX = targetX - this.x;
+                const dirY = targetY - this.y;
+                const distance = Math.sqrt(dirX * dirX + dirY * dirY);
+
+                // Kollision prüfen
+                if (distance < 25) {
+                    this.hitTarget();
+                    return false;
+                }
+
+                // 2. Normalisiere Richtungsvektor
+                const normDirX = dirX / distance;
+                const normDirY = dirY / distance;
+
+                // 3. Berechne "Lenk"-Kraft und passe Geschwindigkeit an
+                this.vx += (normDirX * this.speed - this.vx) * this.turnRate;
+                this.vy += (normDirY * this.speed - this.vy) * this.turnRate;
+
+                // 4. Normalisiere die Geschwindigkeit, um konstanten Speed zu halten
+                const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                this.vx = (this.vx / currentSpeed) * this.speed;
+                this.vy = (this.vy / currentSpeed) * this.speed;
+
+                // 5. Aktualisiere Position basierend auf Zeit (korrekte Umrechnung in Sekunden)
+                this.x += this.vx * (deltaTime / 1000);
+                this.y += this.vy * (deltaTime / 1000);
+
+                // Die Position des DOM-Elements setzen
+                this.element.style.left = this.x + 'px';
+                this.element.style.top = this.y + 'px';
+                
+                return true; // Projektil ist noch aktiv
+            }
+            
+            checkCollision() {
+                if (!this.target || this.target.isDestroyed) return false;
+                
+                const targetRect = this.target.element.getBoundingClientRect();
+                const targetCenterX = targetRect.left + targetRect.width / 2;
+                const targetCenterY = targetRect.top + targetRect.height / 2;
+                
+                const distance = Math.sqrt(
+                    Math.pow(this.x - targetCenterX, 2) + 
+                    Math.pow(this.y - targetCenterY, 2)
+                );
+                
+                return distance <= 25; // Collision radius
+            }
+            
+            hitTarget() {
+                console.log('Homing projectile hit target!');
+                
+                // Use spaceship controller's explode logic
+                if (spaceshipController) {
+                    spaceshipController.explodeWord(this.target);
+                }
+                
+                this.destroy();
+            }
+            
+            destroy() {
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                }
+                
+                // Remove from active projectiles array
+                const index = activeProjectiles.indexOf(this);
+                if (index > -1) {
+                    activeProjectiles.splice(index, 1);
+                }
+            }
+        }
+        
         function calculateBoosterFrequency() {
             const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
             const baseFrequency = 0.4; // 40% chance currently
