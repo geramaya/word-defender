@@ -1009,6 +1009,10 @@
         let gameStarted = false;
         let gameStartTime = 0;
 
+        // Game state variables with pause functionality
+        let isPaused = false;
+        let pauseStartTime = 0;
+
         
         // Global array for active homing projectiles
         let activeProjectiles = [];
@@ -4233,6 +4237,9 @@
             showInfoOverlay();
             
             function animate() {
+                // NEU: Überprüfe, ob das Spiel pausiert ist
+                if (isPaused) { requestAnimationFrame(animate); return; }
+
                 // Update des ersten Raumschiffs
                 if (spaceshipController && gameStarted) {
                     spaceshipController.update();
@@ -4358,7 +4365,35 @@
             });
             
             animate();
+            
         });
+
+        // Am Ende deines Scripts, im DOMContentLoaded-Listener, hinzufügen
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Spieler hat den Tab verlassen -> Pausieren
+                if (gameStarted && !isPaused) {
+                    isPaused = true;
+                    pauseStartTime = Date.now();
+                    console.log('Spiel pausiert (Tab verlassen)');
+                }
+            } else {
+                // Spieler ist zum Tab zurückgekehrt -> Fortsetzen
+                if (gameStarted && isPaused) {
+                    const pauseDuration = Date.now() - pauseStartTime;
+                    // Wichtig: Korrigiere die Startzeit, damit der Timer nicht springt
+                    gameStartTime += pauseDuration; 
+                    // Korrigiere auch den letzten Schild-Timer
+                    if(lastShieldTime > 0) {
+                        lastShieldTime += pauseDuration;
+                    }
+                
+                    isPaused = false;
+                    console.log(`Spiel fortgesetzt nach ${Math.round(pauseDuration / 1000)}s Pause.`);
+                }
+            }
+        });
+
     </script>
 </head>
 <body>
