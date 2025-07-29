@@ -1434,14 +1434,14 @@
         function calculateTargetingTime() {
             const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
             const maxWords = 12;
-            const minTime = 300; // 0.3 seconds minimum (faster than current)
-            const maxTime = 1000; // 1.0 seconds maximum (current)
+            const minTime = 500; // 0.5 seconds minimum (faster than current)
+            const maxTime = 1200; // 1.2 seconds maximum (current)
             
             // Calculate targeting time: more words = longer time, fewer words = shorter time
             const wordRatio = remainingWords / maxWords;
             const targetingTime = minTime + (maxTime - minTime) * wordRatio;
             
-            return targetingTime; // 1000ms → 300ms
+            return targetingTime; // 1200ms → 500ms
         }
         
         function calculateSpaceshipAggressiveness() {
