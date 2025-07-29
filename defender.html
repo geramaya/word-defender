@@ -1205,7 +1205,94 @@
             osc2.stop(audioContext.currentTime + 0.3);
             osc3.stop(audioContext.currentTime + 0.45);
         }
-        
+
+        function createSoftWooshSound() {
+            // --- SETUP ---
+            const now = audioContext.currentTime;
+            const duration = 0.50;
+
+            // 1. Oszillatoren für den "Wumms" des Nachbrenners
+            const osc = audioContext.createOscillator();
+            osc.type = 'sawtooth';
+
+            // NEU: Sub-Oszillator für das Bass-Fundament
+            const subOsc = audioContext.createOscillator();
+            subOsc.type = 'sine'; // Sinuswelle für einen reinen, tiefen Bass
+
+            // Eigene Gain-Regler für jeden Oszillator
+            const oscGain = audioContext.createGain();
+            const subOscGain = audioContext.createGain(); // NEU
+
+            // 2. Rauschen für das "Woosh"-Geräusch
+            const bufferSize = audioContext.sampleRate * duration;
+            const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const output = buffer.getChannelData(0);
+            
+            // GEÄNDERT: Rauschen wird jetzt als "Brown Noise" generiert für mehr Tiefe
+            let lastOut = 0.0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                output[i] = (lastOut + (0.02 * white)) / 1.02;
+                lastOut = output[i];
+                output[i] *= 3.5; // Lautstärke des Rauschens anheben
+            }
+            const noiseSource = audioContext.createBufferSource();
+            noiseSource.buffer = buffer;
+
+            // Filter für das Rauschen
+            const noiseFilter = audioContext.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+
+            // 3. Haupt-Lautstärkeregler
+            const masterGain = audioContext.createGain();
+
+            // 4. Alles miteinander verbinden
+            osc.connect(oscGain);
+            oscGain.connect(masterGain);
+            subOsc.connect(subOscGain); // NEU
+            subOscGain.connect(masterGain); // NEU
+            noiseSource.connect(noiseFilter);
+            noiseFilter.connect(masterGain);
+            masterGain.connect(audioContext.destination);
+
+            // --- AUTOMATION ---
+
+            // A) Oszillator-Automation (Zünd-Impuls)
+            osc.frequency.setValueAtTime(120, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.1);
+            oscGain.gain.setValueAtTime(0, now);
+            oscGain.gain.linearRampToValueAtTime(0.4, now + 0.02);
+            oscGain.gain.linearRampToValueAtTime(0, now + 0.15); // Etwas längeres Ausklingen
+
+            // B) Sub-Bass-Automation (Das Fundament) - NEU
+            subOsc.frequency.setValueAtTime(60, now); // Eine Oktave tiefer
+            subOsc.frequency.exponentialRampToValueAtTime(25, now + 0.2);
+            subOscGain.gain.setValueAtTime(0, now);
+            subOscGain.gain.linearRampToValueAtTime(0.7, now + 0.05); // Schwillt etwas langsamer an
+            subOscGain.gain.exponentialRampToValueAtTime(0.01, now + duration); // Hält den Bass länger
+
+            // C) Rauschen-Automation (der Schweif)
+            noiseFilter.frequency.setValueAtTime(8000, now);
+            noiseFilter.frequency.exponentialRampToValueAtTime(100, now + duration * 0.9);
+
+            // D) Gesamt-Lautstärke-Automation
+            // ANGEPASST: Etwas leiser, da der Sound jetzt "dichter" ist und mehr Druck hat
+            const peakVolume = 0.60;
+            masterGain.gain.setValueAtTime(0, now);
+            masterGain.gain.linearRampToValueAtTime(peakVolume, now + 0.03);
+            masterGain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+            // --- START & STOP ---
+            osc.start(now);
+            subOsc.start(now); // NEU
+            noiseSource.start(now);
+
+            osc.stop(now + duration);
+            subOsc.stop(now + duration); // NEU
+            noiseSource.stop(now + duration);
+        }        
+
+        // Create explosion sound for space beacon destruction        
         function createExplosionSound() {
             // Create complex explosion sound with multiple layers
             const osc1 = audioContext.createOscillator();
@@ -2260,7 +2347,10 @@
                 
                 // Play booster sound
                 try {
-                    createBoosterSound();
+                    // createBoosterSound(); // Uncomment if you have a booster sound function
+                    // Ansonsten nur den neuen, leisen "Woosh"
+                    createSoftWooshSound();
+
                 } catch (e) {
                     console.log('Audio not available:', e);
                 }
