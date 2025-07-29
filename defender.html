@@ -1662,7 +1662,7 @@
             // NEU: Logik zum Erhalten von Autoschilden
             // Bedingung: Mehr als 3 erfolgreiche Verteidigungen in Folge und weniger als die max. Anzahl an Schilden.
             if (consecutiveSuccessfulDefenses > 3 && autoShieldCount < MAX_AUTO_SHIELDS) {
-                if (consecutiveSuccessfulDefenses >=4 || consecutiveSuccessfulDefenses >= 8) {
+                if (consecutiveSuccessfulDefenses === 4 || consecutiveSuccessfulDefenses === 8) {
                     autoShieldCount++;
                     console.log(`Autoschild erhalten! Gesamt: ${autoShieldCount}`);
                 }
@@ -1909,7 +1909,9 @@
                 const now = Date.now();
                 if (now - lastShieldTime >= shieldCooldown) {
                     shieldCount++;
-                    lastShieldTime = now;
+                    console.log(`Schild regeneriert. Aktuell: ${shieldCount}`);
+                    // WICHTIG: Setze den Timer-Startpunkt für den NÄCHSTEN Schild neu.
+                    lastShieldTime = Date.now(); 
                 }
             }
         }
@@ -4206,17 +4208,17 @@
                     }
                 });
             });
-            
-            // Keyboard controls for shield system
+
+            // Logik zum Aktivieren des Schildes
             document.addEventListener('keydown', function(e) {
                 if (e.code === 'Space' && gameStarted) {
                     e.preventDefault();
-                    
+
                     if (shieldCount > 0) {
                         let targetedWord = null;
                         let threatSource = 'unbekannt';
 
-                        // HÖCHSTE PRIORITÄT: Prüfe, ob eine zielsuchende Rakete aktiv ist.
+                        // ... (Die Logik zur Zielerfassung bleibt hier unverändert) ...
                         if (activeProjectiles.length > 0) {
                             const activeHomingProjectile = activeProjectiles[0];
                             if (activeHomingProjectile && activeHomingProjectile.target && !activeHomingProjectile.target.isDestroyed) {
@@ -4224,10 +4226,7 @@
                                 threatSource = 'Ultraschuss-Rakete';
                             }
                         }
-                        
-                        // Wenn keine Rakete aktiv ist, prüfe die anderen Bedrohungen.
                         if (!targetedWord) {
-                            // Prüfung der Minen (höhere Priorität als das Raumschiff selbst)
                             for (let mine of floatingMines) {
                                 if (mine.isTargeting && mine.targetingWord) {
                                     targetedWord = mine.targetingWord;
@@ -4244,17 +4243,19 @@
                                     }
                                 }
                             }
-                            // Letzte Priorität: Das Raumschiff, das gerade ein Ziel anvisiert.
                             if (!targetedWord && spaceshipController && spaceshipController.targetingWord) {
                                 targetedWord = spaceshipController.targetingWord;
                                 threatSource = 'Raumschiff';
                             }
                         }
 
-                        // Wenn ein Ziel durch eine beliebige Bedrohung identifiziert wurde:
                         if (targetedWord) {
                             if (activateShield(targetedWord)) {
-                                shieldCount--; // Schild erst hier verbrauchen.
+                                // NEU: Wir prüfen, ob die Schilde vorher voll waren.
+                                if (shieldCount === maxShields) {
+                                    lastShieldTime = Date.now(); // Starte den Cooldown-Timer JETZT.
+                                }
+                                shieldCount--; // Verbrauche den Schild.
                                 console.log(`Schild aktiviert auf "${targetedWord.element.textContent}" gegen ${threatSource}. Verbleibend: ${shieldCount}`);
                             }
                         } else {
