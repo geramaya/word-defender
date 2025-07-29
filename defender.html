@@ -1037,6 +1037,10 @@
         let pulsarCycleCount = 0;
         let pulsarActive = false; // Whether currently pulling words
 
+        // Variablen für das Autoschild-System
+        let autoShieldCount = 0;
+        const MAX_AUTO_SHIELDS = 2;
+
         let mineSpawnInterval = 30000; // 30 seconds
         let mineLifespan = 10000; // 10 seconds
         
@@ -1434,14 +1438,14 @@
         function calculateTargetingTime() {
             const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
             const maxWords = 12;
-            const minTime = 300; // 0.3 seconds minimum (faster than current)
-            const maxTime = 1000; // 1.0 seconds maximum (current)
+            const minTime = 500; // 0.5 seconds minimum (faster than current)
+            const maxTime = 1200; // 1.2 seconds maximum (current)
             
             // Calculate targeting time: more words = longer time, fewer words = shorter time
             const wordRatio = remainingWords / maxWords;
             const targetingTime = minTime + (maxTime - minTime) * wordRatio;
             
-            return targetingTime; // 1000ms → 300ms
+            return targetingTime; // 1200ms → 500ms
         }
         
         function calculateSpaceshipAggressiveness() {
@@ -1654,29 +1658,37 @@
             currentScore += points;
             consecutiveSuccessfulDefenses++;
             defendedWordsCounter++;
-            
-            // After 4th successful defense, reduce attack interval
+
+            // NEU: Logik zum Erhalten von Autoschilden
+            // Bedingung: Mehr als 3 erfolgreiche Verteidigungen in Folge und weniger als die max. Anzahl an Schilden.
+            if (consecutiveSuccessfulDefenses > 3 && autoShieldCount < MAX_AUTO_SHIELDS) {
+                if (consecutiveSuccessfulDefenses >=4 || consecutiveSuccessfulDefenses >= 8) {
+                    autoShieldCount++;
+                    console.log(`Autoschild erhalten! Gesamt: ${autoShieldCount}`);
+                }
+                // Hier könnte man einen Sound oder einen visuellen Effekt abspielen
+                // z.B. createAutoShieldGetSound(); 
+            }
+
+            // After 4th successful defense, reduce attack interval (bestehende Logik)
             if (consecutiveSuccessfulDefenses === 4) {
                 attackInterval = 8000; // Reduce from 10s to 8s
                 console.log('Attack interval reduced to 8 seconds!');
             }
-            
-            // Beacon deployment logic
+
+            // Beacon deployment logic (bestehende Logik)
             beaconDeploymentCounter++;
             if (beaconDeploymentCounter === nextBeaconAt) {
                 deployBeacon();
-                
-                // Set next beacon deployment
                 if (nextBeaconAt === 4) {
-                    nextBeaconAt = 6; // Next at 6th defense (4 + 2)
+                    nextBeaconAt = 6;
                 } else {
-                    nextBeaconAt += 2; // Every 2nd defense after that
+                    nextBeaconAt += 2;
                 }
-                
                 console.log(`Beacon deployed! Next beacon at defense ${nextBeaconAt}`);
             }
-            
-            console.log(`Awarded ${points} points. Total: ${currentScore}. Consecutive defenses: ${consecutiveSuccessfulDefenses}. Total defended: ${defendedWordsCounter}. Beacon counter: ${beaconDeploymentCounter}`);
+
+            console.log(`Awarded ${points} points. Total: ${currentScore}. Consecutive defenses: ${consecutiveSuccessfulDefenses}.`);
         }
         
         function resetScoreStreak() {
@@ -1795,6 +1807,11 @@
                     </div>
                     <div class="shield-hint">[SPACE] für Schild</div>
                 </div>
+                <div class="ui-element shield-system" style="margin-left: 20px;">
+                    <div class="shield-counter">
+                        🛡️ AUTO x<span id="auto-shield-count">0</span>
+                    </div>
+                </div>                
             `;
             document.body.appendChild(gameUI);
         }
@@ -1871,6 +1888,14 @@
             
             // Update shield system
             updateShieldUI();
+
+            // NEU: Autoschild-Zähler aktualisieren
+            const autoShieldCountElement = document.getElementById('auto-shield-count');
+            if (autoShieldCountElement) {
+                autoShieldCountElement.textContent = autoShieldCount;
+                // Optional: Den Zähler hervorheben, wenn Schilde vorhanden sind
+                autoShieldCountElement.parentElement.parentElement.style.color = autoShieldCount > 0 ? '#55ff55' : '#44ffaa';
+            }            
             
             // Update emergency state
             updateEmergencyState();
@@ -3049,33 +3074,36 @@
             }
             
             explodeWord(target) {
+                // NEU: Autoschild-Logik. Diese hat die höchste Priorität.
+                if (autoShieldCount > 0) {
+                    autoShieldCount--; // Verbrauche einen Autoschild
+                    console.log('Autoschild hat das Wort gerettet! Verbleibend:', autoShieldCount);
+
+                    // Visuelles Feedback für den Spieler
+                    createShieldDeflectionEffect(target); // Wir können den gleichen Effekt wie beim manuellen Schild nutzen
+                    createShieldDeflectionSound(); // Und den gleichen Sound
+
+                    // Wichtig: Beende die Funktion hier, um die Zerstörung zu verhindern.
+                    return; 
+                }
+
+                // Bestehende Logik für den manuellen Schild (wird nur erreicht, wenn kein Autoschild verfügbar war)
                 console.log('Explosion attempt on word:', target.element.textContent, 'isShielded:', target.isShielded);
-                
-                // Check if target is shielded
                 if (target.isShielded) {
                     console.log('Shield deflection successful!');
-                    // Shield deflection effect
                     createShieldDeflectionEffect(target);
                     removeShield(target);
-                    
-                    // Award points for successful defense
                     awardPoints();
-                    
-                    // Play shield deflection sound
                     try {
                         createShieldDeflectionSound();
                     } catch (e) {
                         console.log('Audio not available:', e);
                     }
-                    
-                    return; // Don't destroy shielded word
+                    return;
                 }
-                
+
                 console.log('Word exploded - no shield protection');
-                
-                // Reset score streak when word is destroyed
                 resetScoreStreak();
-                
                 target.explode();
             }
         }
