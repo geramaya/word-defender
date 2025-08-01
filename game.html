@@ -323,6 +323,91 @@
                     additive="sum"/>
             </g>
             
+            <!-- Groß-A'Tuin - Die Welten-Schildkröte (Terry Pratchett Easter Egg) -->
+            <g id="great-atuin" opacity="0.7">
+                <!-- Schildkrötenpanzer (Hauptkörper) -->
+                <ellipse cx="0" cy="0" rx="80" ry="45" fill="#2c5f2d" stroke="#1e4620" stroke-width="2"/>
+                
+                <!-- Panzer-Segmente -->
+                <ellipse cx="0" cy="-15" rx="65" ry="8" fill="#388e3c" opacity="0.6"/>
+                <ellipse cx="0" cy="0" rx="70" ry="8" fill="#2e7d32" opacity="0.7"/>
+                <ellipse cx="0" cy="15" rx="60" ry="8" fill="#1b5e20" opacity="0.8"/>
+                
+                <!-- Kopf (links in Seitenansicht) -->
+                <ellipse cx="-90" cy="-5" rx="25" ry="18" fill="#4a5d4a" stroke="#2e3c2e" stroke-width="1.5"/>
+                
+                <!-- Auge -->
+                <circle cx="-100" cy="-8" r="4" fill="#ffeb3b"/>
+                <circle cx="-101" cy="-8" r="2" fill="#000"/>
+                
+                <!-- Nüstern -->
+                <ellipse cx="-110" cy="-2" rx="2" ry="1" fill="#2e3c2e"/>
+                <ellipse cx="-110" cy="1" rx="2" ry="1" fill="#2e3c2e"/>
+                
+                <!-- Beine (4 sichtbar in Seitenansicht) -->
+                <!-- Vorderbein links -->
+                <ellipse cx="-45" cy="35" rx="12" ry="25" fill="#4a5d4a" stroke="#2e3c2e" stroke-width="1"/>
+                <!-- Hinterbein links -->
+                <ellipse cx="25" cy="35" rx="12" ry="25" fill="#4a5d4a" stroke="#2e3c2e" stroke-width="1"/>
+                <!-- Vorderbein rechts (teilweise verdeckt) -->
+                <ellipse cx="-35" cy="30" rx="10" ry="20" fill="#3c4f3c" stroke="#2e3c2e" stroke-width="1" opacity="0.8"/>
+                <!-- Hinterbein rechts (teilweise verdeckt) -->
+                <ellipse cx="35" cy="30" rx="10" ry="20" fill="#3c4f3c" stroke="#2e3c2e" stroke-width="1" opacity="0.8"/>
+                
+                <!-- Krallen an den Beinen -->
+                <polygon points="-57,55 -53,60 -49,55" fill="#2e3c2e"/>
+                <polygon points="-41,55 -37,60 -33,55" fill="#2e3c2e"/>
+                <polygon points="13,55 17,60 21,55" fill="#2e3c2e"/>
+                <polygon points="37,55 41,60 45,55" fill="#2e3c2e"/>
+                
+                <!-- Schwanz (rechts) -->
+                <ellipse cx="90" cy="10" rx="15" ry="8" fill="#4a5d4a" stroke="#2e3c2e" stroke-width="1"/>
+                
+                <!-- Hals -->
+                <ellipse cx="-65" cy="-2" rx="8" ry="12" fill="#4a5d4a" stroke="#2e3c2e" stroke-width="1"/>
+                
+                <!-- Die Scheibenwelt auf dem Rücken (winzig aber erkennbar) -->
+                <circle cx="0" cy="-45" r="15" fill="#654321" stroke="#4a4a4a" stroke-width="0.8"/>
+                <!-- Kleine Kontinente -->
+                <polygon points="-8,-50 -4,-48 -6,-45" fill="#2e7d32"/>
+                <polygon points="2,-52 8,-49 5,-46" fill="#2e7d32"/>
+                <polygon points="-2,-43 4,-40 0,-38" fill="#2e7d32"/>
+                
+                <!-- Die vier Elefanten (winzig) -->
+                <circle cx="-10" cy="-45" r="2" fill="#8d6e63"/>
+                <circle cx="10" cy="-45" r="2" fill="#8d6e63"/>
+                <circle cx="-5" cy="-50" r="2" fill="#8d6e63"/>
+                <circle cx="5" cy="-50" r="2" fill="#8d6e63"/>
+                
+                <!-- Sternenstaub um A'Tuin -->
+                <circle cx="-120" cy="-30" r="1" fill="#ffeb3b" opacity="0.8">
+                    <animate attributeName="opacity" values="0.8;0.3;0.8" dur="4s" repeatCount="indefinite"/>
+                </circle>
+                <circle cx="110" cy="20" r="1.5" fill="#ffeb3b" opacity="0.7">
+                    <animate attributeName="opacity" values="0.7;0.2;0.7" dur="3s" repeatCount="indefinite"/>
+                </circle>
+                <circle cx="-80" cy="60" r="1" fill="#e1f5fe" opacity="0.9">
+                    <animate attributeName="opacity" values="0.9;0.4;0.9" dur="5s" repeatCount="indefinite"/>
+                </circle>
+                
+                <!-- Majestätische Bewegung durch den Weltraum -->
+                <animateTransform
+                    attributeName="transform"
+                    type="translate"
+                    values="-400,250; 1600,280; 1800,300"
+                    dur="180s"
+                    repeatCount="indefinite"/>
+                    
+                <!-- Sanftes Schweben -->
+                <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    values="0;2;-1;0"
+                    dur="25s"
+                    repeatCount="indefinite"
+                    additive="sum"/>
+            </g>
+            
             <!-- Flying Space Elephants (More Easter Eggs) -->
             <g id="space-elephants" opacity="0.5">
                 <!-- Elephant 1 (leftmost) -->
