@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Game Config Test</title>
+</head>
+<body>
+    <h1>Game Configuration Test</h1>
+    <div id="output"></div>
+    
+    <script type="module">
+        import CONFIG from './game_config.js';
+        
+        const output = document.getElementById('output');
+        
+        // Test alle wichtigen Konfigurationswerte
+        const tests = [
+            ['PHI', CONFIG.GAME_CONSTANTS.PHI],
+            ['UI_BAR_HEIGHT', CONFIG.GAME_CONSTANTS.UI_BAR_HEIGHT],
+            ['TOTAL_WORDS', CONFIG.GAME_CONSTANTS.TOTAL_WORDS],
+            ['DEFAULT_DIFFICULTY', CONFIG.GAME_CONSTANTS.DEFAULT_DIFFICULTY],
+            ['INITIAL_SHIELD_COUNT', CONFIG.SHIELD_CONFIG.INITIAL_SHIELD_COUNT],
+            ['BASE_SHIELD_COOLDOWN', CONFIG.SHIELD_CONFIG.BASE_SHIELD_COOLDOWN],
+            ['MAX_BEACONS', CONFIG.BEACON_CONFIG.MAX_BEACONS],
+            ['SPAWN_INTERVAL', CONFIG.MINE_CONFIG.SPAWN_INTERVAL],
+            ['INITIAL_ATTACK_INTERVAL', CONFIG.ATTACK_CONFIG.INITIAL_ATTACK_INTERVAL],
+            ['BASE_CHASE_SPEED', CONFIG.SPACESHIP_CONFIG.BASE_CHASE_SPEED]
+        ];
+        
+        let html = '<h2>✅ Alle Konfigurationswerte geladen:</h2><ul>';
+        tests.forEach(([name, value]) => {
+            html += `<li><strong>${name}</strong>: ${value}</li>`;
+        });
+        html += '</ul>';
+        
+        // Test Utility-Funktionen
+        html += '<h2>🔧 Utility-Funktionen Test:</h2><ul>';
+        
+        // Test getDifficultySettings
+        const difficulty = CONFIG.CONFIG_UTILS.getDifficultySettings('mittel');
+        html += `<li><strong>Mittel Schwierigkeitsgrad</strong>: attackIntervalMultiplier = ${difficulty.attackIntervalMultiplier}</li>`;
+        
+        // Test calculateAttackInterval
+        const attackInterval = CONFIG.CONFIG_UTILS.calculateAttackInterval(6);
+        html += `<li><strong>Attack Interval (6 Wörter)</strong>: ${attackInterval}ms</li>`;
+        
+        // Test calculateScore
+        const score = CONFIG.CONFIG_UTILS.calculateScore(1);
+        html += `<li><strong>Score (2. Verteidigung)</strong>: ${score} Punkte</li>`;
+        
+        // Test formatTime
+        const formattedTime = CONFIG.CONFIG_UTILS.formatTime(125);
+        html += `<li><strong>Format Time (125s)</strong>: ${formattedTime}</li>`;
+        
+        html += '</ul>';
+        
+        output.innerHTML = html;
+        
+        console.log('✅ Alle Tests erfolgreich!');
+    </script>
+</body>
+</html>

@@ -1,5 +1,8 @@
-const PHI = 1.618033988749;
-const UI_BAR_HEIGHT = 60; // Muss mit der CSS-Höhe von .game-ui übereinstimmen
+// Import der Game-Konfiguration
+import CONFIG from './game_config.js';
+
+const PHI = CONFIG.GAME_CONSTANTS.PHI;
+const UI_BAR_HEIGHT = CONFIG.GAME_CONSTANTS.UI_BAR_HEIGHT;
 let containerWidth = window.innerWidth;
 let containerHeight = window.innerHeight;
 
@@ -20,17 +23,17 @@ let pauseStartTime = 0;
 let activeProjectiles = [];
 
 // Shield system
-let shieldCount = 3;
-let maxShields = 3;
-let shieldCooldown = 60000; // 60 seconds
+let shieldCount = CONFIG.SHIELD_CONFIG.INITIAL_SHIELD_COUNT;
+let maxShields = CONFIG.SHIELD_CONFIG.MAX_SHIELDS;
+let shieldCooldown = CONFIG.SHIELD_CONFIG.BASE_SHIELD_COOLDOWN; // 60 seconds
 let lastShieldTime = 0;
 let protectedWords = new Set();
 
 // Beacon mine system
 let spaceBeacons = [];
-let maxBeacons = 3;
+let maxBeacons = CONFIG.BEACON_CONFIG.MAX_BEACONS;
 let beaconDeploymentCounter = 0; // Track defenses for beacon deployment
-let nextBeaconAt = 4; // First beacon at 4th defense, then every 2nd
+let nextBeaconAt = CONFIG.BEACON_CONFIG.FIRST_BEACON_AT_DEFENSE; // First beacon at 4th defense, then every 2nd
 
 // Floating mine system
 let floatingMines = [];
@@ -39,24 +42,24 @@ let mineSpawnTimer = null;
 let pulsarElement = null;
 let pulsarPhase = 0; // 0 = inactive, 1 = phase1 (≤4 words), 2 = phase2 (≤2 words)
 let pulsarTimer = 0;
-let pulsarCycleTime = 1000; // 1 second for phase 1, 0.5 second for phase 2
+let pulsarCycleTime = CONFIG.PULSAR_CONFIG.PHASE_1_CYCLE_TIME; // 1 second for phase 1, 0.5 second for phase 2
 let pulsarCycleCount = 0;
 let pulsarActive = false; // Whether currently pulling words
 
 // Variablen für das Autoschild-System
-let autoShieldCount = 0;
-const MAX_AUTO_SHIELDS = 2;
+let autoShieldCount = CONFIG.SHIELD_CONFIG.INITIAL_AUTO_SHIELD_COUNT;
+const MAX_AUTO_SHIELDS = CONFIG.SHIELD_CONFIG.MAX_AUTO_SHIELDS;
 
-let mineSpawnInterval = 30000; // 30 seconds
-let mineLifespan = 10000; // 10 seconds
+let mineSpawnInterval = CONFIG.MINE_CONFIG.SPAWN_INTERVAL; // 30 seconds
+let mineLifespan = CONFIG.MINE_CONFIG.LIFESPAN; // 10 seconds
 
 // Difficulty system
-let currentDifficulty = 'mittel'; // default
+let currentDifficulty = CONFIG.GAME_CONSTANTS.DEFAULT_DIFFICULTY; // default
 
 // Scoring system
 let currentScore = 0;
 let consecutiveSuccessfulDefenses = 0;
-let attackInterval = 10000; // Start at 10 seconds
+let attackInterval = CONFIG.ATTACK_CONFIG.INITIAL_ATTACK_INTERVAL; // Start at 10 seconds
 let hasFirstAttackHappened = false;
 let defendedWordsCounter = 0;
 
@@ -377,13 +380,7 @@ function createExplosionSound() {
 // Dynamic game mechanics based on remaining words
 function calculateSpaceshipChaseSpeed() {
     const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-    const settings = getDifficultySettings();
-    const baseSpeed = 4.8 * settings.spaceshipSpeedMultiplier; 
-    const desperationMultiplier = (12 - remainingWords) / 12 * 1.5;
-    const dynamicSpeed = baseSpeed * (1 + desperationMultiplier);
-    
-    console.log(`Spaceship chase speed - Words: ${remainingWords}, Speed: ${dynamicSpeed.toFixed(1)}, Difficulty: ${localStorage.getItem('wordDefenderDifficulty') || 'mittel'}`);
-    return dynamicSpeed;
+    return CONFIG.CONFIG_UTILS.calculateSpaceshipSpeed(remainingWords);
 }
 
 // HomingProjectile class for Ultra-Nachschuss
@@ -393,8 +390,8 @@ class HomingProjectile {
         this.y = startY;
         this.target = target;
         this.speed = speed;
-        this.turnRate = turnRate || 0.04; // How quickly it can turn toward target
-        this.lifespan = 2500; // 2.5 seconds max lifetime
+        this.turnRate = turnRate || CONFIG.PROJECTILE_CONFIG.HOMING.DEFAULT_TURN_RATE; // How quickly it can turn toward target
+        this.lifespan = CONFIG.PROJECTILE_CONFIG.HOMING.LIFESPAN; // 2.5 seconds max lifetime
         this.age = 0;
         
         // Calculate initial velocity direction toward target
@@ -454,7 +451,7 @@ class HomingProjectile {
         const targetY = this.target.y + this.target.height / 2;
 
         // --- NEUE KAPSEL-KOLLISIONSPRÜFUNG ---
-        const collisionRadius = 15 + Math.min(this.target.width, this.target.height) * 0.4;
+        const collisionRadius = CONFIG.PROJECTILE_CONFIG.HOMING.COLLISION_RADIUS + Math.min(this.target.width, this.target.height) * CONFIG.PROJECTILE_CONFIG.HOMING.TARGET_COLLISION_FACTOR;
         const distanceToCenter = Math.sqrt(Math.pow(targetX - this.x, 2) + Math.pow(targetY - this.y, 2));
 
         if (distanceToCenter < collisionRadius) {
@@ -498,7 +495,7 @@ class HomingProjectile {
             Math.pow(this.y - targetCenterY, 2)
         );
         
-        return distance <= 25; // Collision radius
+        return distance <= CONFIG.PROJECTILE_CONFIG.STANDARD_COLLISION_RADIUS; // Collision radius
     }
     
     hitTarget() {
@@ -532,113 +529,61 @@ class HomingProjectile {
 
 function calculateBoosterFrequency() {
     const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-    const baseFrequency = 0.4; // 40% chance currently
-    const desperationFactor = (12 - remainingWords) / 12;
-    const dynamicFrequency = Math.min(0.9, baseFrequency + desperationFactor * 0.5);
-    
-    return dynamicFrequency; // 40% → 90%
+    return CONFIG.CONFIG_UTILS.calculateBoosterFrequency(remainingWords);
 }
 
 // Difficulty system functions
 function getDifficultySettings() {
-    const difficulty = localStorage.getItem('wordDefenderDifficulty') || 'mittel';
-    
-    switch(difficulty) {
-        case 'leicht':
-            return {
-                attackIntervalMultiplier: 1.5,     // 50% längere Intervalle (12s-7.5s statt 8s-5s)
-                targetingTimeMultiplier: 1.4,      // 40% längere Targeting-Zeit (1.68s-2.1s)
-                shieldCooldownMultiplier: 0.75,    // 25% schnellere Schild-Regeneration (45s statt 60s)
-                maxAutoShields: 3,                 // Ein zusätzlicher Auto-Schild
-                spaceshipSpeedMultiplier: 0.85,    // 15% langsameres Schiff
-                boosterFrequencyMultiplier: 0.7    // 30% weniger Booster
-            };
-        case 'schwer':
-            return {
-                attackIntervalMultiplier: 0.7,     // 30% kürzere Intervalle (5.6s-3.5s statt 8s-5s)
-                targetingTimeMultiplier: 0.7,      // 30% kürzere Targeting-Zeit (0.84s-1.05s)
-                shieldCooldownMultiplier: 1.3,     // 30% langsamere Schild-Regeneration (78s statt 60s)
-                maxAutoShields: 1,                 // Nur ein Auto-Schild
-                spaceshipSpeedMultiplier: 1.2,     // 20% schnelleres Schiff
-                boosterFrequencyMultiplier: 1.3    // 30% mehr Booster
-            };
-        default: // mittel
-            return {
-                attackIntervalMultiplier: 1.0,
-                targetingTimeMultiplier: 1.0,
-                shieldCooldownMultiplier: 1.0,
-                maxAutoShields: 2,
-                spaceshipSpeedMultiplier: 1.0,
-                boosterFrequencyMultiplier: 1.0
-            };
-    }
+    return CONFIG.CONFIG_UTILS.getDifficultySettings();
 }
 
 function calculateTargetingTime() {
     const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-    const maxWords = 12;
-    const settings = getDifficultySettings();
-    const minTime = 1200 * settings.targetingTimeMultiplier; 
-    const maxTime = 1500 * settings.targetingTimeMultiplier; 
-    
-    // Calculate targeting time: more words = longer time, fewer words = shorter time
-    const wordRatio = remainingWords / maxWords;
-    const targetingTime = minTime + (maxTime - minTime) * wordRatio;
-    
-    return targetingTime;
+    return CONFIG.CONFIG_UTILS.calculateTargetingTime(remainingWords);
 }
 
 function calculateSpaceshipAggressiveness() {
     const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-    const desperationFactor = (12 - remainingWords) / 12;
+    const desperationFactor = (CONFIG.GAME_CONSTANTS.TOTAL_WORDS - remainingWords) / CONFIG.GAME_CONSTANTS.TOTAL_WORDS;
     
     return {
-        chaseThreshold: Math.max(0.1, 0.4 - desperationFactor * 0.25), // 40% → 15% chase chance
-        directionChangeSpeed: 1 + desperationFactor * 2, // 1x → 3x faster direction changes
-        huntMode: remainingWords <= 4 // Aggressive hunt mode when ≤4 words
+        chaseThreshold: Math.max(CONFIG.SPACESHIP_CONFIG.AGGRESSION.MIN_CHASE_THRESHOLD, 
+                                CONFIG.SPACESHIP_CONFIG.AGGRESSION.BASE_CHASE_THRESHOLD - desperationFactor * 0.25), // 40% → 15% chase chance
+        directionChangeSpeed: 1 + desperationFactor * (CONFIG.SPACESHIP_CONFIG.AGGRESSION.MAX_DIRECTION_CHANGE_SPEED - 1), // 1x → 3x faster direction changes
+        huntMode: remainingWords <= CONFIG.SPACESHIP_CONFIG.AGGRESSION.HUNT_MODE_WORD_THRESHOLD // Aggressive hunt mode when ≤4 words
     };
 }
 
 function calculateDynamicFriction() {
     const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-    const baseFriction = 0.995;
-    const desperationFactor = (12 - remainingWords) / 12;
-    const dynamicFriction = baseFriction - (desperationFactor * 0.008);
+    const desperationFactor = (CONFIG.GAME_CONSTANTS.TOTAL_WORDS - remainingWords) / CONFIG.GAME_CONSTANTS.TOTAL_WORDS;
+    const dynamicFriction = CONFIG.SPACESHIP_CONFIG.PHYSICS.BASE_FRICTION - (desperationFactor * CONFIG.SPACESHIP_CONFIG.PHYSICS.FRICTION_DESPERATION_FACTOR);
     
-    return Math.max(dynamicFriction, 0.970); // Minimum friction threshold
+    return Math.max(dynamicFriction, CONFIG.SPACESHIP_CONFIG.PHYSICS.MIN_FRICTION); // Minimum friction threshold
 }
 
 function calculateDynamicRotationDamping() {
     const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-    const baseDamping = 0.998;
-    const desperationFactor = (12 - remainingWords) / 12;
-    return baseDamping - (desperationFactor * 0.003); // Stronger damping when desperate
+    const desperationFactor = (CONFIG.GAME_CONSTANTS.TOTAL_WORDS - remainingWords) / CONFIG.GAME_CONSTANTS.TOTAL_WORDS;
+    return CONFIG.SPACESHIP_CONFIG.PHYSICS.BASE_ROTATION_DAMPING - (desperationFactor * CONFIG.SPACESHIP_CONFIG.PHYSICS.ROTATION_DESPERATION_FACTOR); // Stronger damping when desperate
 }
 
 function calculateAttackInterval() {
     const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-    const settings = getDifficultySettings();
-    
-    let baseInterval;
-    if (remainingWords >= 9) baseInterval = 8000;       // 8s base
-    else if (remainingWords >= 6) baseInterval = 7000;  // 7s base  
-    else if (remainingWords >= 3) baseInterval = 6000;  // 6s base
-    else baseInterval = 5000;                           // 5s base - final phase
-    
-    return Math.round(baseInterval * settings.attackIntervalMultiplier);
+    return CONFIG.CONFIG_UTILS.calculateAttackInterval(remainingWords);
 }
 
 function getSpaceshipAggressionLevel() {
     const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-    const desperationFactor = (12 - remainingWords) / 12;
-    return 1 + desperationFactor * 2; // 1x → 3x aggression
+    const desperationFactor = (CONFIG.GAME_CONSTANTS.TOTAL_WORDS - remainingWords) / CONFIG.GAME_CONSTANTS.TOTAL_WORDS;
+    return 1 + desperationFactor * (CONFIG.SPACESHIP_CONFIG.AGGRESSION.MAX_DIRECTION_CHANGE_SPEED - 1); // 1x → 3x aggression
 }
 
 function updateEmergencyState() {
     const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
     let emergencyOverlay = document.getElementById('emergency-overlay');
     
-    if (remainingWords <= 3) {
+    if (remainingWords <= CONFIG.EMERGENCY_CONFIG.EMERGENCY_WORD_THRESHOLD) {
         // Create emergency overlay if it doesn't exist
         if (!emergencyOverlay) {
             emergencyOverlay = document.createElement('div');
@@ -917,8 +862,8 @@ function validateAndStartGame() {
 }
 
 // Online Leaderboard API URL (kann angepasst werden)
-const LEADERBOARD_API = 'https://api.jsonbin.io/v3/b/66b1234567890abcdef12345'; // Beispiel-URL
-const API_KEY = '$2a$10$YOUR_API_KEY_HERE'; // JsonBin.io API Key
+const LEADERBOARD_API = CONFIG.LEADERBOARD_CONFIG.API_URL; // Beispiel-URL
+const API_KEY = CONFIG.LEADERBOARD_CONFIG.API_KEY; // JsonBin.io API Key
 
 // Highscore localStorage functions
 function loadHighscores() {
@@ -933,8 +878,8 @@ function saveHighscore(playerName, survivalTime, finalScore) {
         survivalTime: survivalTime,
         score: finalScore || 0, // Ensure score is always a number
         date: new Date().toISOString(),
-        wordsDestroyed: 12 - floatingTexts.filter(word => !word.isDestroyed).length,
-        difficulty: localStorage.getItem('wordDefenderDifficulty') || 'mittel'
+        wordsDestroyed: CONFIG.GAME_CONSTANTS.TOTAL_WORDS - floatingTexts.filter(word => !word.isDestroyed).length,
+        difficulty: localStorage.getItem('wordDefenderDifficulty') || CONFIG.GAME_CONSTANTS.DEFAULT_DIFFICULTY
     };
     
     highscores.push(newScore);
@@ -1033,9 +978,7 @@ async function submitToOnlineLeaderboard(scoreData) {
 }
 
 function formatTime(seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return CONFIG.CONFIG_UTILS.formatTime(seconds);
 }
 
 function showHighscoreTable(currentScoreData = null) {
@@ -1208,14 +1151,7 @@ function attachLeaderboardEventListeners() {
 }
 
 function calculateScore() {
-    let points;
-    switch(consecutiveSuccessfulDefenses) {
-        case 0: points = 100; break;
-        case 1: points = 250; break;
-        case 2: points = 500; break;
-        default: points = 500; break; // Stay at 500 for subsequent defenses
-    }
-    return points;
+    return CONFIG.CONFIG_UTILS.calculateScore(consecutiveSuccessfulDefenses);
 }
 
 function awardPoints() {
@@ -1229,7 +1165,7 @@ function awardPoints() {
     const maxAutoShields = settings.maxAutoShields;
     
     if (consecutiveSuccessfulDefenses > 3 && autoShieldCount < maxAutoShields) {
-        if (consecutiveSuccessfulDefenses === 4 || consecutiveSuccessfulDefenses === 8) {
+        if (CONFIG.SHIELD_CONFIG.AUTO_SHIELD_AWARD_THRESHOLDS.includes(consecutiveSuccessfulDefenses)) {
             autoShieldCount++;
             console.log(`Autoschild erhalten! Gesamt: ${autoShieldCount} (Max: ${maxAutoShields})`);
         }
@@ -1237,7 +1173,7 @@ function awardPoints() {
 
     // After 4th successful defense, reduce attack interval (bestehende Logik)
     if (consecutiveSuccessfulDefenses === 4) {
-        attackInterval = 8000; // Reduce from 10s to 8s
+        attackInterval = CONFIG.ATTACK_CONFIG.REDUCED_ATTACK_INTERVAL; // Reduce from 10s to 8s
         console.log('Attack interval reduced to 8 seconds!');
     }
 
@@ -1245,10 +1181,10 @@ function awardPoints() {
     beaconDeploymentCounter++;
     if (beaconDeploymentCounter === nextBeaconAt) {
         deployBeacon();
-        if (nextBeaconAt === 4) {
-            nextBeaconAt = 6;
+        if (nextBeaconAt === CONFIG.BEACON_CONFIG.FIRST_BEACON_AT_DEFENSE) {
+            nextBeaconAt = CONFIG.BEACON_CONFIG.FIRST_BEACON_AT_DEFENSE + CONFIG.BEACON_CONFIG.SUBSEQUENT_BEACON_INTERVAL;
         } else {
-            nextBeaconAt += 2;
+            nextBeaconAt += CONFIG.BEACON_CONFIG.SUBSEQUENT_BEACON_INTERVAL;
         }
         console.log(`Beacon deployed! Next beacon at defense ${nextBeaconAt}`);
     }
@@ -1265,7 +1201,7 @@ function resetScoreStreak() {
     
     // Reset beacon deployment counter but keep existing beacons
     beaconDeploymentCounter = 0;
-    nextBeaconAt = 4;
+    nextBeaconAt = CONFIG.BEACON_CONFIG.FIRST_BEACON_AT_DEFENSE;
     
     console.log('Score streak, defended counter, and beacon deployment counter reset to 0');
 }
@@ -1281,24 +1217,24 @@ async function startGame() {
     console.log('Angewandte Schwierigkeitseinstellungen:', settings);
     
     // Zuerst alles zurücksetzen und initialisieren.
-    shieldCount = 3;
+    shieldCount = CONFIG.SHIELD_CONFIG.INITIAL_SHIELD_COUNT;
     lastShieldTime = 0; // Wichtig für den ersten Cooldown-Timer
     protectedWords.clear();
     currentScore = 0;
     consecutiveSuccessfulDefenses = 0;
-    attackInterval = 10000;
+    attackInterval = CONFIG.ATTACK_CONFIG.INITIAL_ATTACK_INTERVAL;
     hasFirstAttackHappened = false;
     defendedWordsCounter = 0;
     resetPulsar();
     beaconDeploymentCounter = 0;
-    nextBeaconAt = 4;
+    nextBeaconAt = CONFIG.BEACON_CONFIG.FIRST_BEACON_AT_DEFENSE;
     spaceBeacons.forEach(beacon => beacon.destroy());
     spaceBeacons = [];
     stopMineSpawning();
     
     // Apply difficulty-specific settings
-    shieldCooldown = Math.round(60000 * settings.shieldCooldownMultiplier);
-    autoShieldCount = 0;
+    shieldCooldown = Math.round(CONFIG.SHIELD_CONFIG.BASE_SHIELD_COOLDOWN * settings.shieldCooldownMultiplier);
+    autoShieldCount = CONFIG.SHIELD_CONFIG.INITIAL_AUTO_SHIELD_COUNT;
     // Note: MAX_AUTO_SHIELDS is handled in getDifficultySettings()
     
     // Reset second hunter
@@ -1341,7 +1277,7 @@ function checkForSecondHunter() {
     if (!secondSpaceshipController) {
         const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
         
-        if (remainingWords <= 3) {
+        if (remainingWords <= CONFIG.EMERGENCY_CONFIG.SECOND_HUNTER_WORD_THRESHOLD) {
             console.log('3 ODER WENIGER WORTE VERBLEIBEND! EIN ZWEITER JÄGER ERSCHEINT!');
             secondSpaceshipController = new SpaceshipController();
         }
@@ -1354,7 +1290,7 @@ function createGameUI() {
     gameUI.id = 'game-ui';
     gameUI.innerHTML = `
         <div class="ui-element words-remaining">
-            Wörter: <span id="words-count">12</span>
+            Wörter: <span id="words-count">${CONFIG.GAME_CONSTANTS.TOTAL_WORDS}</span>
         </div>
         <div class="ui-element survival-time">
             Zeit: <span id="survival-timer">00:00</span>
@@ -1376,7 +1312,7 @@ function createGameUI() {
         </div>
         <div class="ui-element shield-system">
             <div class="shield-counter">
-                🛡️ x<span id="shield-count">3</span>
+                🛡️ x<span id="shield-count">${CONFIG.SHIELD_CONFIG.INITIAL_SHIELD_COUNT}</span>
             </div>
             <div class="shield-cooldown">
                 <div class="cooldown-bar" id="cooldown-bar"></div>
@@ -1386,7 +1322,7 @@ function createGameUI() {
         </div>
         <div class="ui-element shield-system" style="margin-left: 20px;">
             <div class="shield-counter">
-                🛡️ AUTO x<span id="auto-shield-count">0</span>
+                🛡️ AUTO x<span id="auto-shield-count">${CONFIG.SHIELD_CONFIG.INITIAL_AUTO_SHIELD_COUNT}</span>
             </div>
         </div>                
     `;
@@ -1491,7 +1427,7 @@ let uiUpdateInterval = null;
 
 function startUIUpdates() {
     if (uiUpdateInterval) clearInterval(uiUpdateInterval);
-    uiUpdateInterval = setInterval(updateGameUI, 1000);
+    uiUpdateInterval = setInterval(updateGameUI, CONFIG.UI_CONFIG.UPDATE_INTERVAL);
 }
 
 function stopUIUpdates() {
