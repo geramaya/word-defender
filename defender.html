@@ -4509,9 +4509,9 @@
             showInfoOverlay();
             
             function animate(currentTime) {
-                // Performance-Optimierung: Berechne echte deltaTime
+                // Performance-Optimierung: Berechne echte deltaTime mit adaptiver Grenze
                 if (!animate.lastTime) animate.lastTime = currentTime;
-                const deltaTime = Math.min(currentTime - animate.lastTime, 33); // Max 33ms (30 FPS minimum)
+                const deltaTime = Math.min(currentTime - animate.lastTime, 25); // Max 25ms (40 FPS minimum, 60 FPS angestrebt)
                 animate.lastTime = currentTime;
                 
                 // NEU: Überprüfe, ob das Spiel pausiert ist
