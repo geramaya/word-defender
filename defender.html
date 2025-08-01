@@ -52,6 +52,9 @@
             will-change: transform;
             backface-visibility: hidden;
             transform-style: preserve-3d;
+            /* Performance optimizations */
+            contain: layout style paint;
+            transform: translateZ(0); /* Force hardware acceleration */
         }
         
         .hello:active {
@@ -83,6 +86,10 @@
             z-index: 1000;
             pointer-events: none;
             transition: transform 0.3s ease-out;
+            /* Performance optimizations */
+            will-change: transform;
+            transform: translateZ(0); /* Force hardware acceleration */
+            contain: layout style paint;
         }
 
         .booster-flame {
@@ -119,6 +126,10 @@
             pointer-events: none;
             z-index: 999;
             animation: projectilePulse 0.2s ease-in-out infinite alternate;
+            /* Performance optimizations */
+            will-change: transform, left, top;
+            transform: translateZ(0); /* Force hardware acceleration */
+            contain: layout style paint;
         }
 
         @keyframes projectilePulse {
@@ -312,6 +323,119 @@
         .player-name-input:focus {
             border-color: #66aaff;
             box-shadow: 0 0 20px rgba(68, 136, 255, 0.3);
+        }
+
+        /* Difficulty selection styles */
+        .difficulty-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .difficulty-section h3 {
+            color: #88ccff;
+            margin-bottom: 15px;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .difficulty-btn small {
+            display: block;
+            font-size: 12px;
+            font-weight: normal;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        .difficulty-btn[data-difficulty="leicht"] {
+            border-color: #44ff44;
+            background: rgba(68, 255, 68, 0.1);
+        }
+
+        .difficulty-btn[data-difficulty="mittel"] {
+            border-color: #ffaa44;
+            background: rgba(255, 170, 68, 0.1);
+        }
+
+        .difficulty-btn[data-difficulty="schwer"] {
+            border-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .difficulty-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .difficulty-btn.selected {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .difficulty-btn.selected[data-difficulty="leicht"] {
+            box-shadow: 0 0 20px rgba(68, 255, 68, 0.5);
+            background: rgba(68, 255, 68, 0.2);
+        }
+
+        .difficulty-btn.selected[data-difficulty="mittel"] {
+            box-shadow: 0 0 20px rgba(255, 170, 68, 0.5);
+            background: rgba(255, 170, 68, 0.2);
+        }
+
+        .difficulty-btn.selected[data-difficulty="schwer"] {
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+            background: rgba(255, 68, 68, 0.2);
+        }
+
+        /* Difficulty display in game UI */
+        .difficulty-badge {
+            font-size: 12px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .difficulty-badge.leicht {
+            background: rgba(68, 255, 68, 0.2);
+            color: #44ff44;
+            border: 1px solid #44ff44;
+        }
+
+        .difficulty-badge.mittel {
+            background: rgba(255, 170, 68, 0.2);
+            color: #ffaa44;
+            border: 1px solid #ffaa44;
+        }
+
+        .difficulty-badge.schwer {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid #ff4444;
         }
 
         .error-message {
@@ -1048,6 +1172,9 @@
         let mineSpawnInterval = 30000; // 30 seconds
         let mineLifespan = 10000; // 10 seconds
         
+        // Difficulty system
+        let currentDifficulty = 'mittel'; // default
+        
         // Scoring system
         let currentScore = 0;
         let consecutiveSuccessfulDefenses = 0;
@@ -1372,12 +1499,13 @@
         // Dynamic game mechanics based on remaining words
         function calculateSpaceshipChaseSpeed() {
             const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-            const baseSpeed = 4.8; // Current chase speed
+            const settings = getDifficultySettings();
+            const baseSpeed = 4.8 * settings.spaceshipSpeedMultiplier; 
             const desperationMultiplier = (12 - remainingWords) / 12 * 1.5;
             const dynamicSpeed = baseSpeed * (1 + desperationMultiplier);
             
-            console.log(`Spaceship chase speed - Words: ${remainingWords}, Speed: ${dynamicSpeed.toFixed(1)}`);
-            return dynamicSpeed; // 4.8 → 12.0
+            console.log(`Spaceship chase speed - Words: ${remainingWords}, Speed: ${dynamicSpeed.toFixed(1)}, Difficulty: ${localStorage.getItem('wordDefenderDifficulty') || 'mittel'}`);
+            return dynamicSpeed;
         }
         
         // HomingProjectile class for Ultra-Nachschuss
@@ -1533,17 +1661,53 @@
             return dynamicFrequency; // 40% → 90%
         }
         
+        // Difficulty system functions
+        function getDifficultySettings() {
+            const difficulty = localStorage.getItem('wordDefenderDifficulty') || 'mittel';
+            
+            switch(difficulty) {
+                case 'leicht':
+                    return {
+                        attackIntervalMultiplier: 1.5,     // 50% längere Intervalle (12s-7.5s statt 8s-5s)
+                        targetingTimeMultiplier: 1.4,      // 40% längere Targeting-Zeit (1.68s-2.1s)
+                        shieldCooldownMultiplier: 0.75,    // 25% schnellere Schild-Regeneration (45s statt 60s)
+                        maxAutoShields: 3,                 // Ein zusätzlicher Auto-Schild
+                        spaceshipSpeedMultiplier: 0.85,    // 15% langsameres Schiff
+                        boosterFrequencyMultiplier: 0.7    // 30% weniger Booster
+                    };
+                case 'schwer':
+                    return {
+                        attackIntervalMultiplier: 0.7,     // 30% kürzere Intervalle (5.6s-3.5s statt 8s-5s)
+                        targetingTimeMultiplier: 0.7,      // 30% kürzere Targeting-Zeit (0.84s-1.05s)
+                        shieldCooldownMultiplier: 1.3,     // 30% langsamere Schild-Regeneration (78s statt 60s)
+                        maxAutoShields: 1,                 // Nur ein Auto-Schild
+                        spaceshipSpeedMultiplier: 1.2,     // 20% schnelleres Schiff
+                        boosterFrequencyMultiplier: 1.3    // 30% mehr Booster
+                    };
+                default: // mittel
+                    return {
+                        attackIntervalMultiplier: 1.0,
+                        targetingTimeMultiplier: 1.0,
+                        shieldCooldownMultiplier: 1.0,
+                        maxAutoShields: 2,
+                        spaceshipSpeedMultiplier: 1.0,
+                        boosterFrequencyMultiplier: 1.0
+                    };
+            }
+        }
+        
         function calculateTargetingTime() {
             const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
             const maxWords = 12;
-            const minTime = 1200; // 1 second minimum (faster than current)
-            const maxTime = 1500; // 1.5 seconds maximum (current)
+            const settings = getDifficultySettings();
+            const minTime = 1200 * settings.targetingTimeMultiplier; 
+            const maxTime = 1500 * settings.targetingTimeMultiplier; 
             
             // Calculate targeting time: more words = longer time, fewer words = shorter time
             const wordRatio = remainingWords / maxWords;
             const targetingTime = minTime + (maxTime - minTime) * wordRatio;
             
-            return targetingTime; // 1500ms → 1000ms
+            return targetingTime;
         }
         
         function calculateSpaceshipAggressiveness() {
@@ -1575,10 +1739,15 @@
         
         function calculateAttackInterval() {
             const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-            if (remainingWords >= 9) return 8000;       // 8s (war 10s)
-            if (remainingWords >= 6) return 7000;       // 7s (war 9s)  
-            if (remainingWords >= 3) return 6000;       // 6s (war 8s)
-            return 5000;                                // 5s (war 7s) - final phase
+            const settings = getDifficultySettings();
+            
+            let baseInterval;
+            if (remainingWords >= 9) baseInterval = 8000;       // 8s base
+            else if (remainingWords >= 6) baseInterval = 7000;  // 7s base  
+            else if (remainingWords >= 3) baseInterval = 6000;  // 6s base
+            else baseInterval = 5000;                           // 5s base - final phase
+            
+            return Math.round(baseInterval * settings.attackIntervalMultiplier);
         }
         
         function getSpaceshipAggressionLevel() {
@@ -1618,11 +1787,30 @@
                 <div class="info-box">
                     <h1>WORD DEFENDER<br><span style="font-size: 0.6em; color: #ff4444;">vs. THE PSYCHO WORD HUNTER</span></h1>
                     <p>Ein Raumschiff jagt die schwebenden Wörter!</p>
-                    <p><span class="highlight">Erste Angriffe beginnen nach 20 Sekunden</span> - dann alle 10 Sekunden.</p>
+                    <p><span class="highlight">Erste Angriffe beginnen nach 20 Sekunden</span> - dann dynamische Intervalle.</p>
                     <p><span class="highlight">Rote Radar-Pings</span> warnen vor dem Angriff.</p>
                     <p>Das Radar und das Aufschalten <span class="highlight">passieren schnell</span> - sei bereit!</p>
                     <p>Klicke auf Wörter um sie zu bewegen und vor dem Schiff zu retten!</p>
                     <p>Überlebe so lange wie möglich! 🚀</p>
+                    
+                    <div class="difficulty-section">
+                        <h3>Schwierigkeitsgrad wählen:</h3>
+                        <div class="difficulty-buttons">
+                            <button class="difficulty-btn" data-difficulty="leicht">
+                                🟢 LEICHT
+                                <small>Entspannt spielen</small>
+                            </button>
+                            <button class="difficulty-btn selected" data-difficulty="mittel">
+                                🟡 MITTEL
+                                <small>Ausgewogen</small>
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="schwer">
+                                🔴 SCHWER
+                                <small>Hardcore-Modus</small>
+                            </button>
+                        </div>
+                    </div>
+                    
                     <input type="text" class="player-name-input" id="player-name" placeholder="Dein Name..." maxlength="20">
                     <div class="error-message" id="name-error">Bitte gib einen Namen ein!</div>
                     <button class="start-button" onclick="validateAndStartGame()">START GAME</button>
@@ -1630,8 +1818,26 @@
             `;
             document.body.appendChild(overlay);
             
-            // Load last used name
+            // Load saved difficulty and player name
+            const savedDifficulty = localStorage.getItem('wordDefenderDifficulty') || 'mittel';
             const lastPlayer = localStorage.getItem('wordDefenderLastPlayer');
+            
+            // Set difficulty buttons
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.dataset.difficulty === savedDifficulty) {
+                    btn.classList.add('selected');
+                }
+                
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    currentDifficulty = btn.dataset.difficulty;
+                    localStorage.setItem('wordDefenderDifficulty', currentDifficulty);
+                    console.log('Schwierigkeitsgrad geändert zu:', currentDifficulty);
+                });
+            });
+            
             if (lastPlayer) {
                 document.getElementById('player-name').value = lastPlayer;
             }
@@ -1662,9 +1868,11 @@
             errorDiv.classList.remove('show');
             localStorage.setItem('wordDefenderLastPlayer', playerName);
             
-            // Store current player name globally
+            // Store current player name and difficulty globally
             window.currentPlayerName = playerName;
+            currentDifficulty = localStorage.getItem('wordDefenderDifficulty') || 'mittel';
             
+            console.log('Spiel startet mit Schwierigkeitsgrad:', currentDifficulty);
             startGame();
         }
         
@@ -1757,15 +1965,15 @@
             consecutiveSuccessfulDefenses++;
             defendedWordsCounter++;
 
-            // NEU: Logik zum Erhalten von Autoschilden
-            // Bedingung: Mehr als 3 erfolgreiche Verteidigungen in Folge und weniger als die max. Anzahl an Schilden.
-            if (consecutiveSuccessfulDefenses > 3 && autoShieldCount < MAX_AUTO_SHIELDS) {
+            // NEU: Logik zum Erhalten von Autoschilden (mit Schwierigkeitsgrad)
+            const settings = getDifficultySettings();
+            const maxAutoShields = settings.maxAutoShields;
+            
+            if (consecutiveSuccessfulDefenses > 3 && autoShieldCount < maxAutoShields) {
                 if (consecutiveSuccessfulDefenses === 4 || consecutiveSuccessfulDefenses === 8) {
                     autoShieldCount++;
-                    console.log(`Autoschild erhalten! Gesamt: ${autoShieldCount}`);
+                    console.log(`Autoschild erhalten! Gesamt: ${autoShieldCount} (Max: ${maxAutoShields})`);
                 }
-                // Hier könnte man einen Sound oder einen visuellen Effekt abspielen
-                // z.B. createAutoShieldGetSound(); 
             }
 
             // After 4th successful defense, reduce attack interval (bestehende Logik)
@@ -1809,6 +2017,10 @@
                 overlay.remove();
             }
             
+            // Apply difficulty settings
+            const settings = getDifficultySettings();
+            console.log('Angewandte Schwierigkeitseinstellungen:', settings);
+            
             // Zuerst alles zurücksetzen und initialisieren.
             shieldCount = 3;
             lastShieldTime = 0; // Wichtig für den ersten Cooldown-Timer
@@ -1825,6 +2037,11 @@
             spaceBeacons = [];
             stopMineSpawning();
             
+            // Apply difficulty-specific settings
+            shieldCooldown = Math.round(60000 * settings.shieldCooldownMultiplier);
+            autoShieldCount = 0;
+            // Note: MAX_AUTO_SHIELDS is handled in getDifficultySettings()
+            
             // Reset second hunter
             secondSpaceshipController = null;
             
@@ -1837,7 +2054,7 @@
             
             // UI erstellen und aktualisieren.
             createGameUI();
-            updateGameUI();
+            startUIUpdates(); // Start UI updates with proper interval
             startMineSpawning(); // Minen-Spawn erst jetzt starten.
 
             // Audio-Kontext fortsetzen, falls nötig.
@@ -1888,6 +2105,9 @@
                 </div>
                 <div class="ui-element defended-counter">
                     Verteidigt: <span id="defended-count">0</span>
+                </div>
+                <div class="ui-element difficulty-display">
+                    Modus: <span id="difficulty-display" class="difficulty-badge">MITTEL</span>
                 </div>
                 <div class="ui-element spaceship-aggression">
                     Schiff: <span id="aggression-level" class="aggression-level calm">RUHIG</span>
@@ -1993,13 +2213,33 @@
                 autoShieldCountElement.textContent = autoShieldCount;
                 // Optional: Den Zähler hervorheben, wenn Schilde vorhanden sind
                 autoShieldCountElement.parentElement.parentElement.style.color = autoShieldCount > 0 ? '#55ff55' : '#44ffaa';
+            }
+            
+            // Update difficulty display
+            const difficultyDisplay = document.getElementById('difficulty-display');
+            if (difficultyDisplay) {
+                const currentDiff = localStorage.getItem('wordDefenderDifficulty') || 'mittel';
+                difficultyDisplay.textContent = currentDiff.toUpperCase();
+                difficultyDisplay.className = 'difficulty-badge ' + currentDiff;
             }            
             
             // Update emergency state
             updateEmergencyState();
-            
-            // Update every second
-            setTimeout(updateGameUI, 1000);
+        }
+        
+        // UI Update Timer - separate from game loop
+        let uiUpdateInterval = null;
+        
+        function startUIUpdates() {
+            if (uiUpdateInterval) clearInterval(uiUpdateInterval);
+            uiUpdateInterval = setInterval(updateGameUI, 1000);
+        }
+        
+        function stopUIUpdates() {
+            if (uiUpdateInterval) {
+                clearInterval(uiUpdateInterval);
+                uiUpdateInterval = null;
+            }
         }
         
         function updateShieldCooldown() {
@@ -2204,6 +2444,9 @@
             if (gameUI) {
                 gameUI.remove();
             }
+            
+            // Stop UI updates to prevent memory leaks
+            stopUIUpdates();
 
             const emergencyOverlay = document.getElementById('emergency-overlay');
             if (emergencyOverlay) {
@@ -4265,9 +4508,18 @@
             // Show info overlay on page load
             showInfoOverlay();
             
-            function animate() {
+            function animate(currentTime) {
+                // Performance-Optimierung: Berechne echte deltaTime
+                if (!animate.lastTime) animate.lastTime = currentTime;
+                const deltaTime = Math.min(currentTime - animate.lastTime, 33); // Max 33ms (30 FPS minimum)
+                animate.lastTime = currentTime;
+                
                 // NEU: Überprüfe, ob das Spiel pausiert ist
-                if (isPaused) { requestAnimationFrame(animate); return; }
+                if (isPaused) { 
+                    animate.lastTime = currentTime; // Reset time when paused
+                    requestAnimationFrame(animate); 
+                    return; 
+                }
 
                 // Update des ersten Raumschiffs
                 if (spaceshipController && gameStarted) {
@@ -4285,11 +4537,11 @@
                     }
                 });
                 
-                // Update der zielsuchenden Projektile
+                // Update der zielsuchenden Projektile mit echter deltaTime
                 if (gameStarted && activeProjectiles.length > 0) {
                     for (let i = activeProjectiles.length - 1; i >= 0; i--) {
                         const projectile = activeProjectiles[i];
-                        if (!projectile.update(16)) {
+                        if (!projectile.update(deltaTime)) {
                             activeProjectiles.splice(i, 1);
                         }
                     }
@@ -4303,7 +4555,7 @@
                     checkForSecondHunter(); // Prüft, ob der zweite Jäger gerufen werden soll
 
                     if (pulsarPhase > 0) {
-                        pulsarTimer += 16;
+                        pulsarTimer += deltaTime;
                         if (pulsarTimer >= pulsarCycleTime) {
                             pulsarActive = !pulsarActive;
                             pulsarTimer = 0;
@@ -4314,7 +4566,7 @@
                             }
                         }
                         if (pulsarActive) {
-                            applyPulsarAttraction(16);
+                            applyPulsarAttraction(deltaTime);
                         }
                     }
                 }
