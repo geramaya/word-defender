@@ -604,98 +604,162 @@ function updateEmergencyState() {
 }
 
 function showInfoOverlay() {
-    const overlay = document.createElement('div');
-    overlay.className = 'info-overlay';
-    overlay.innerHTML = `
-        <div class="info-box">
-            <h1>WORD DEFENDER<br><span style="font-size: 0.6em; color: #ff4444;">vs. THE PSYCHO WORD HUNTER</span></h1>
-            <p>Ein Raumschiff jagt die schwebenden Wörter!</p>
-            <p><span class="highlight">Erste Angriffe beginnen nach 20 Sekunden</span> - dann dynamische Intervalle.</p>
-            <p><span class="highlight">Rote Radar-Pings</span> warnen vor dem Angriff.</p>
-            <p>Das Radar und das Aufschalten <span class="highlight">passieren schnell</span> - sei bereit!</p>
-            <p>Klicke auf Wörter um sie zu bewegen und vor dem Schiff zu retten!</p>
-            <p>Überlebe so lange wie möglich! 🚀</p>
-            
-            <div class="start-screen-navigation">
-                <div class="nav-buttons">
-                    <button class="nav-btn active" data-tab="game-setup">🎮 SPIEL STARTEN</button>
-                    <button class="nav-btn" data-tab="leaderboard">🏆 HIGHSCORES</button>
+    console.log('🎯 showInfoOverlay called');
+    
+    try {
+        const overlay = document.createElement('div');
+        overlay.className = 'info-overlay';
+        
+        // Erstelle einen sicheren Highscore-Bereich
+        let highscoreContent = '';
+        try {
+            highscoreContent = showStartScreenHighscores();
+            console.log('✅ Highscores loaded successfully');
+        } catch (error) {
+            console.error('❌ Error loading highscores:', error);
+            highscoreContent = `
+                <div class="start-screen-leaderboard">
+                    <h2>🏆 LOKALE HIGHSCORES</h2>
+                    <p>Highscores werden geladen...</p>
                 </div>
-            </div>
-            
-            <div id="game-setup" class="tab-content active">
-                <div class="difficulty-section">
-                    <h3>Schwierigkeitsgrad wählen:</h3>
-                    <div class="difficulty-buttons">
-                        <button class="difficulty-btn" data-difficulty="leicht">
-                            🟢 LEICHT
-                            <small>Entspannt spielen</small>
-                        </button>
-                        <button class="difficulty-btn selected" data-difficulty="mittel">
-                            🟡 MITTEL
-                            <small>Ausgewogen</small>
-                        </button>
-                        <button class="difficulty-btn" data-difficulty="schwer">
-                            🔴 SCHWER
-                            <small>Hardcore-Modus</small>
-                        </button>
+            `;
+        }
+        
+        overlay.innerHTML = `
+            <div class="info-box">
+                <h1>WORD DEFENDER<br><span style="font-size: 0.6em; color: #ff4444;">vs. THE PSYCHO WORD HUNTER</span></h1>
+                <p>Ein Raumschiff jagt die schwebenden Wörter!</p>
+                <p><span class="highlight">Erste Angriffe beginnen nach 20 Sekunden</span> - dann dynamische Intervalle.</p>
+                <p><span class="highlight">Rote Radar-Pings</span> warnen vor dem Angriff.</p>
+                <p>Das Radar und das Aufschalten <span class="highlight">passieren schnell</span> - sei bereit!</p>
+                <p>Klicke auf Wörter um sie zu bewegen und vor dem Schiff zu retten!</p>
+                <p>Überlebe so lange wie möglich! 🚀</p>
+                
+                <div class="start-screen-navigation">
+                    <div class="nav-buttons">
+                        <button class="nav-btn active" data-tab="game-setup">🎮 SPIEL STARTEN</button>
+                        <button class="nav-btn" data-tab="leaderboard">🏆 HIGHSCORES</button>
                     </div>
                 </div>
                 
-                <input type="text" class="player-name-input" id="player-name" placeholder="Dein Name..." maxlength="20">
-                <div class="error-message" id="name-error">Bitte gib einen Namen ein!</div>
-                <button class="start-button" onclick="validateAndStartGame()">START GAME</button>
-            </div>
-            
-            <div id="leaderboard" class="tab-content">
-                <div id="start-screen-highscores">
-                    ${showStartScreenHighscores()}
+                <div id="game-setup" class="tab-content active">
+                    <div class="difficulty-section">
+                        <h3>Schwierigkeitsgrad wählen:</h3>
+                        <div class="difficulty-buttons">
+                            <button class="difficulty-btn" data-difficulty="leicht">
+                                🟢 LEICHT
+                                <small>Entspannt spielen</small>
+                            </button>
+                            <button class="difficulty-btn selected" data-difficulty="mittel">
+                                🟡 MITTEL
+                                <small>Ausgewogen</small>
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="schwer">
+                                🔴 SCHWER
+                                <small>Hardcore-Modus</small>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <input type="text" class="player-name-input" id="player-name" placeholder="Dein Name..." maxlength="20">
+                    <div class="error-message" id="name-error">Bitte gib einen Namen ein!</div>
+                    <button class="start-button" onclick="validateAndStartGame()">START GAME</button>
                 </div>
-                <button class="start-button secondary" onclick="switchToGameSetup()">⬅ ZURÜCK ZUM SPIEL</button>
+                
+                <div id="leaderboard" class="tab-content">
+                    <div id="start-screen-highscores">
+                        ${highscoreContent}
+                    </div>
+                    <button class="start-button secondary" onclick="switchToGameSetup()">⬅ ZURÜCK ZUM SPIEL</button>
+                </div>
             </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-    
-    // Set up tab navigation
-    setupStartScreenNavigation();
-    
-    // Load saved difficulty and player name
-    const savedDifficulty = localStorage.getItem('wordDefenderDifficulty') || 'mittel';
-    const lastPlayer = localStorage.getItem('wordDefenderLastPlayer');
-    
-    // Set difficulty buttons
-    document.querySelectorAll('.difficulty-btn').forEach(btn => {
-        btn.classList.remove('selected');
-        if (btn.dataset.difficulty === savedDifficulty) {
-            btn.classList.add('selected');
+        `;
+        
+        document.body.appendChild(overlay);
+        console.log('✅ Overlay added to DOM');
+        
+        // Debug: Check if overlay is actually visible
+        setTimeout(() => {
+            const addedOverlay = document.querySelector('.info-overlay');
+            if (addedOverlay) {
+                console.log('🔍 Overlay found in DOM:', addedOverlay);
+                console.log('📐 Overlay styles:', {
+                    display: getComputedStyle(addedOverlay).display,
+                    visibility: getComputedStyle(addedOverlay).visibility,
+                    opacity: getComputedStyle(addedOverlay).opacity,
+                    zIndex: getComputedStyle(addedOverlay).zIndex,
+                    position: getComputedStyle(addedOverlay).position
+                });
+                console.log('📏 Overlay dimensions:', {
+                    width: addedOverlay.offsetWidth,
+                    height: addedOverlay.offsetHeight,
+                    top: addedOverlay.offsetTop,
+                    left: addedOverlay.offsetLeft
+                });
+            } else {
+                console.error('❌ Overlay not found in DOM!');
+            }
+        }, 200);
+        
+        // Set up tab navigation
+        setupStartScreenNavigation();
+        
+        // Load saved difficulty and player name
+        const savedDifficulty = localStorage.getItem('wordDefenderDifficulty') || CONFIG.GAME_CONSTANTS.DEFAULT_DIFFICULTY;
+        const lastPlayer = localStorage.getItem('wordDefenderLastPlayer');
+        
+        // Set difficulty buttons
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.classList.remove('selected');
+            if (btn.dataset.difficulty === savedDifficulty) {
+                btn.classList.add('selected');
+            }
+            
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                currentDifficulty = btn.dataset.difficulty;
+                localStorage.setItem('wordDefenderDifficulty', currentDifficulty);
+                console.log('Schwierigkeitsgrad geändert zu:', currentDifficulty);
+            });
+        });
+        
+        if (lastPlayer) {
+            document.getElementById('player-name').value = lastPlayer;
         }
         
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            currentDifficulty = btn.dataset.difficulty;
-            localStorage.setItem('wordDefenderDifficulty', currentDifficulty);
-            console.log('Schwierigkeitsgrad geändert zu:', currentDifficulty);
-        });
-    });
-    
-    if (lastPlayer) {
-        document.getElementById('player-name').value = lastPlayer;
-    }
-    
-    // Focus on input when on game setup tab
-    const gameSetupTab = document.getElementById('game-setup');
-    if (gameSetupTab && gameSetupTab.classList.contains('active')) {
-        document.getElementById('player-name').focus();
-    }
-    
-    // Allow Enter key to start
-    document.getElementById('player-name').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            validateAndStartGame();
+        // Focus on input when on game setup tab
+        const gameSetupTab = document.getElementById('game-setup');
+        if (gameSetupTab && gameSetupTab.classList.contains('active')) {
+            document.getElementById('player-name').focus();
         }
-    });
+        
+        // Allow Enter key to start
+        document.getElementById('player-name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                validateAndStartGame();
+            }
+        });
+        
+        console.log('✅ showInfoOverlay completed successfully');
+        
+    } catch (error) {
+        console.error('❌ Critical error in showInfoOverlay:', error);
+        // Fallback: Zeige ein einfaches Overlay
+        const fallbackOverlay = document.createElement('div');
+        fallbackOverlay.className = 'info-overlay';
+        fallbackOverlay.innerHTML = `
+            <div class="info-box">
+                <h1>WORD DEFENDER</h1>
+                <p>Spiel wird geladen...</p>
+                <p>Bei Problemen die Seite neu laden.</p>
+                <button onclick="location.reload()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    Neu laden
+                </button>
+            </div>
+        `;
+        document.body.appendChild(fallbackOverlay);
+    }
 }
 
 function setupStartScreenNavigation() {
@@ -748,7 +812,7 @@ function showStartScreenHighscores() {
                                     <div class="player-name">${score.name} ${difficultyBadge}</div>
                                     <div class="score-details">
                                         <span class="score">${score.score} Punkte</span>
-                                        <span class="time">${formatTime(score.survivalTime)}</span>
+                                        <span class="time">${CONFIG.CONFIG_UTILS.formatTime(score.survivalTime)}</span>
                                     </div>
                                 </div>
                             </li>
@@ -812,7 +876,7 @@ async function showStartScreenOnlineLeaderboard() {
                                     <div class="player-name">${score.name} ${difficultyBadge}</div>
                                     <div class="score-details">
                                         <span class="score">${score.score} Punkte</span>
-                                        <span class="time">${formatTime(score.survivalTime)}</span>
+                                        <span class="time">${CONFIG.CONFIG_UTILS.formatTime(score.survivalTime)}</span>
                                     </div>
                                 </div>
                             </li>
@@ -1005,8 +1069,8 @@ function showHighscoreTable(currentScoreData = null) {
                                     <div class="player-name">${score.name} ${difficultyBadge}</div>
                                     <div class="score-details">
                                         <span class="score">${score.score} Punkte</span>
-                                        <span class="time">${formatTime(score.survivalTime)}</span>
-                                        <span class="words">${score.wordsDestroyed || 0}/12 Wörter</span>
+                                        <span class="time">${CONFIG.CONFIG_UTILS.formatTime(score.survivalTime)}</span>
+                                        <span class="words">${score.wordsDestroyed || 0}/${CONFIG.GAME_CONSTANTS.TOTAL_WORDS} Wörter</span>
                                     </div>
                                 </div>
                                 <div class="date">${new Date(score.date).toLocaleDateString('de-DE')}</div>
@@ -1071,8 +1135,8 @@ async function showOnlineLeaderboard() {
                                     <div class="player-name">${score.name} ${difficultyBadge}</div>
                                     <div class="score-details">
                                         <span class="score">${score.score} Punkte</span>
-                                        <span class="time">${formatTime(score.survivalTime)}</span>
-                                        <span class="words">${score.wordsDestroyed || 0}/12 Wörter</span>
+                                        <span class="time">${CONFIG.CONFIG_UTILS.formatTime(score.survivalTime)}</span>
+                                        <span class="words">${score.wordsDestroyed || 0}/${CONFIG.GAME_CONSTANTS.TOTAL_WORDS} Wörter</span>
                                     </div>
                                 </div>
                                 <div class="date">${new Date(score.submittedAt || score.date).toLocaleDateString('de-DE')}</div>
@@ -3221,33 +3285,6 @@ function updateBeacons() {
     });
 }
 
-function createExplosionSound() {
-    // Create explosive sound effect
-    const osc1 = audioContext.createOscillator();
-    const osc2 = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    osc1.connect(gainNode);
-    osc2.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    // Deep explosive rumble
-    osc1.frequency.setValueAtTime(60, audioContext.currentTime);
-    osc1.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.3);
-    
-    // Sharp explosion crack
-    osc2.frequency.setValueAtTime(800, audioContext.currentTime);
-    osc2.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.2);
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.4);
-    
-    osc1.start(audioContext.currentTime);
-    osc2.start(audioContext.currentTime);
-    osc1.stop(audioContext.currentTime + 0.4);
-    osc2.stop(audioContext.currentTime + 0.4);
-}
-
 // Floating Mine Threat System
 class FloatingMine {
     constructor() {
@@ -3705,8 +3742,17 @@ function resetPulsar() {
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
-    // Show info overlay on page load
-    showInfoOverlay();
+    console.log('🌟 DOMContentLoaded event fired');
+    console.log('📦 CONFIG available:', typeof CONFIG !== 'undefined');
+    console.log('🎮 showInfoOverlay function available:', typeof showInfoOverlay !== 'undefined');
+    
+    try {
+        // Show info overlay on page load
+        console.log('⏰ Starting initialization...');
+        showInfoOverlay();
+    } catch (error) {
+        console.error('❌ Error during initialization:', error);
+    }
     
     function animate(currentTime) {
         // Performance-Optimierung: Berechne echte deltaTime mit adaptiver Grenze
@@ -3884,4 +3930,15 @@ document.addEventListener('visibilitychange', () => {
         }
     }
 });
+
+// ========================================
+// GLOBALE FUNKTIONEN FÜR HTML ONCLICK
+// ========================================
+// Diese Funktionen müssen global verfügbar sein für onclick-Handler in HTML
+
+window.validateAndStartGame = validateAndStartGame;
+window.switchToGameSetup = switchToGameSetup;
+window.showLocalLeaderboard = showLocalLeaderboard;
+window.refreshStartScreenLeaderboard = refreshStartScreenLeaderboard;
+window.restartGame = restartGame;
 

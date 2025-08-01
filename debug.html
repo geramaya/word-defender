@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Defender Debug</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 style="color: white; text-align: center; margin-top: 50px;">Word Defender - Debug Mode</h1>
+        <div id="debug-info" style="color: white; padding: 20px; background: rgba(0,0,0,0.5); margin: 20px; border-radius: 10px;">
+            <h2>Loading Status:</h2>
+            <div id="status"></div>
+        </div>
+        
+        <div style="text-align: center; margin: 20px;">
+            <button onclick="testShowOverlay()" style="padding: 10px 20px; margin: 10px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Test Show Overlay
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        const statusDiv = document.getElementById('status');
+        
+        function log(message) {
+            console.log(message);
+            statusDiv.innerHTML += `<div>${message}</div>`;
+        }
+        
+        log('🔄 Starting debug...');
+        
+        try {
+            log('📦 Importing CONFIG...');
+            const CONFIG = await import('./game_config.js');
+            window.CONFIG = CONFIG.default || CONFIG;
+            log('✅ CONFIG loaded successfully');
+            log(`📊 Total words: ${window.CONFIG.GAME_CONSTANTS.TOTAL_WORDS}`);
+        } catch (error) {
+            log(`❌ CONFIG import failed: ${error.message}`);
+        }
+        
+        try {
+            log('📦 Importing game functions...');
+            
+            // Teste eine einfache Funktion
+            function simpleShowInfoOverlay() {
+                log('🎯 Creating overlay...');
+                const overlay = document.createElement('div');
+                overlay.className = 'info-overlay';
+                overlay.innerHTML = `
+                    <div class="info-box">
+                        <h1>WORD DEFENDER DEBUG</h1>
+                        <p>Das Overlay funktioniert!</p>
+                        <button onclick="closeDebugOverlay()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            Schließen
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                log('✅ Overlay created and added to body');
+            }
+            
+            window.testShowOverlay = simpleShowInfoOverlay;
+            
+            window.closeDebugOverlay = function() {
+                const overlay = document.querySelector('.info-overlay');
+                if (overlay) {
+                    overlay.remove();
+                    log('✅ Overlay removed');
+                }
+            };
+            
+            log('✅ Debug functions ready');
+            
+        } catch (error) {
+            log(`❌ Setup failed: ${error.message}`);
+        }
+    </script>
+</body>
+</html>

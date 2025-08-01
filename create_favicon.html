@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Favicon Creator</title>
+</head>
+<body>
+    <canvas id="favicon" width="32" height="32"></canvas>
+    <script>
+        const canvas = document.getElementById('favicon');
+        const ctx = canvas.getContext('2d');
+        
+        // Black background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 32, 32);
+        
+        // Green border
+        ctx.strokeStyle = '#4CAF50';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(2, 2, 28, 28);
+        
+        // White "W" for Word Defender
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 18px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('W', 16, 22);
+        
+        // Convert to favicon
+        const link = document.createElement('link');
+        link.type = 'image/x-icon';
+        link.rel = 'shortcut icon';
+        link.href = canvas.toDataURL('image/x-icon');
+        document.getElementsByTagName('head')[0].appendChild(link);
+        
+        // Also create a downloadable version
+        const a = document.createElement('a');
+        a.download = 'favicon.ico';
+        a.href = canvas.toDataURL('image/x-icon');
+        a.textContent = 'Download Favicon';
+        document.body.appendChild(a);
+    </script>
+</body>
+</html>
