@@ -1799,7 +1799,7 @@ class SpaceshipController {
         this.shootingRadius = Math.min(containerWidth, containerHeight) / 2.5;
         this.radarRadius = Math.min(containerWidth, containerHeight) / 1.5;
         this.MAX_FIRING_ANGLE = 30;
-        this.COLLISION_RADIUS = 25;
+        this.COLLISION_RADIUS = 25 * CONFIG.SPACESHIP_CONFIG.VISUAL.SIZE_SCALE; // Skalierter Kollisionsradius
         this.targetingWord = null;
         this.targetingTimer = null;
         this.radarPing = null;
@@ -1836,8 +1836,19 @@ class SpaceshipController {
         this.spaceship.className = 'spaceship';
         this.spaceship.style.left = this.x + 'px';
         this.spaceship.style.top = this.y + 'px';
+        
+        // Skaliere das Raumschiff basierend auf CONFIG
+        const scale = CONFIG.SPACESHIP_CONFIG.VISUAL.SIZE_SCALE;
+        const baseSize = CONFIG.SPACESHIP_CONFIG.VISUAL.BASE_WIDTH;
+        const scaledSize = baseSize * scale;
+        
+        this.spaceship.style.width = scaledSize + 'px';
+        this.spaceship.style.height = scaledSize + 'px';
+        this.spaceship.style.transform = `scale(${scale})`;
+        this.spaceship.style.transformOrigin = 'center center';
+        
         this.spaceship.innerHTML = `
-            <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+            <svg viewBox="0 0 ${CONFIG.SPACESHIP_CONFIG.VISUAL.SVG_VIEWBOX_SIZE} ${CONFIG.SPACESHIP_CONFIG.VISUAL.SVG_VIEWBOX_SIZE}" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="spaceshipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                         <stop offset="0%" style="stop-color:#silver;stop-opacity:1" />
@@ -1862,6 +1873,12 @@ class SpaceshipController {
     showBooster() {
         const booster = document.createElement('div');
         booster.className = 'booster-flame';
+        
+        // Skaliere den Booster basierend auf CONFIG
+        const boosterScale = CONFIG.SPACESHIP_CONFIG.VISUAL.BOOSTER_SCALE;
+        booster.style.transform = `translateX(-50%) scale(${boosterScale})`;
+        booster.style.transformOrigin = 'center bottom';
+        
         this.spaceship.appendChild(booster);
         
         // Play booster sound

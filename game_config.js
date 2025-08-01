@@ -102,6 +102,15 @@ export const SPACESHIP_CONFIG = {
     BASE_CHASE_SPEED: 4.8,
     MAX_DESPERATION_MULTIPLIER: 1.5, // Bis zu 50% schneller wenn verzweifelt
     
+    // Visuelle Größen-Parameter
+    VISUAL: {
+        SIZE_SCALE: 2.2,        // 120% Vergrößerung (2.2x original)
+        SVG_VIEWBOX_SIZE: 50,   // Original SVG viewBox
+        BASE_WIDTH: 50,         // Basis-Breite
+        BASE_HEIGHT: 50,        // Basis-Höhe
+        BOOSTER_SCALE: 2.5      // Booster-Effekte 150% größer
+    },
+    
     // Aggressivitäts-System
     AGGRESSION: {
         BASE_CHASE_THRESHOLD: 0.4,       // 40% Grundchance für Verfolgung

@@ -84,13 +84,13 @@ body {
 
 .booster-flame {
     position: absolute;
-    bottom: -15px;
+    bottom: -35px;  /* Etwas näher zum Schiff, aber immer noch dahinter */
     left: 50%;
     transform: translateX(-50%);
-    width: 8px;
-    height: 20px;
-    background: linear-gradient(to top, #ff4444, #ffff44, #ff8844);
-    border-radius: 50% 50% 0 0;
+    width: 10px;
+    height: 25px;
+    background: linear-gradient(to top, #ff4444, #ffff44, #ff8844);  /* Gradient nach oben - heiß am Schiff, kühl an der Spitze */
+    border-radius: 50% 50% 0 0;  /* Spitze nach oben (zum Schiff hin) */
     opacity: 0;
     animation: boosterFlame 0.5s ease-out;
 }
