@@ -1343,7 +1343,7 @@ function checkForSecondHunter() {
         
         if (remainingWords <= CONFIG.EMERGENCY_CONFIG.SECOND_HUNTER_WORD_THRESHOLD) {
             console.log('3 ODER WENIGER WORTE VERBLEIBEND! EIN ZWEITER JÄGER ERSCHEINT!');
-            secondSpaceshipController = new SpaceshipController();
+            secondSpaceshipController = new SpaceshipController(true); // true = zweiter Hunter
         }
     }
 }
@@ -1782,9 +1782,10 @@ async function initializeGame() {
 }
 
 class SpaceshipController {
-    constructor() {
+    constructor(isSecondHunter = false) {
         this.container = document.querySelector('.container');
         this.spaceship = null;
+        this.isSecondHunter = isSecondHunter; // Unterscheidet zwischen erstem und zweitem Schiff
         this.x = containerWidth / 2 + (Math.random() - 0.5) * 200;
         this.y = containerHeight / 2 + (Math.random() - 0.5) * 200;
         this.vx = (Math.random() - 0.5) * 2;
@@ -1847,26 +1848,80 @@ class SpaceshipController {
         this.spaceship.style.transform = `scale(${scale})`;
         this.spaceship.style.transformOrigin = 'center center';
         
-        this.spaceship.innerHTML = `
-            <svg viewBox="0 0 ${CONFIG.SPACESHIP_CONFIG.VISUAL.SVG_VIEWBOX_SIZE} ${CONFIG.SPACESHIP_CONFIG.VISUAL.SVG_VIEWBOX_SIZE}" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="spaceshipGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" style="stop-color:#silver;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:#darkgray;stop-opacity:1" />
-                    </linearGradient>
-                </defs>
-                <!-- Main body -->
-                <ellipse cx="25" cy="31.25" rx="10" ry="15" fill="url(#spaceshipGradient)" stroke="#666" stroke-width="1"/>
-                <!-- Cockpit -->
-                <ellipse cx="25" cy="18.75" rx="5" ry="7.5" fill="#4488ff" opacity="0.7"/>
-                <!-- Wings -->
-                <polygon points="15,37.5 10,43.75 15,40" fill="url(#spaceshipGradient)" stroke="#666"/>
-                <polygon points="35,37.5 40,43.75 35,40" fill="url(#spaceshipGradient)" stroke="#666"/>
-                <!-- Engine glow -->
-                <ellipse cx="25" cy="46.25" rx="3.75" ry="2.5" fill="#ff4444" opacity="0.8"/>
-                <ellipse cx="25" cy="47.5" rx="2.5" ry="1.25" fill="#ffff44" opacity="0.9"/>
-            </svg>
-        `;
+        // Unterschiedliche Farben für erstes und zweites Schiff
+        if (this.isSecondHunter) {
+            // Zweiter Hunter - Rote Farben mit weißem Cockpit
+            this.spaceship.innerHTML = `
+                <svg viewBox="0 0 ${CONFIG.SPACESHIP_CONFIG.VISUAL.SVG_VIEWBOX_SIZE} ${CONFIG.SPACESHIP_CONFIG.VISUAL.SVG_VIEWBOX_SIZE}" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <!-- Hauptkörper Gradient (Rot-Metallic) -->
+                        <linearGradient id="secondHunterBodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#e74c3c;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#c0392b;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#a93226;stop-opacity:1" />
+                        </linearGradient>
+                        <!-- Sekundärteile Gradient (Dunkelblau-Metallic) -->
+                        <linearGradient id="secondHunterWingsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#3498db;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#2980b9;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#1f4e79;stop-opacity:1" />
+                        </linearGradient>
+                        <!-- Weißes Cockpit Gradient -->
+                        <radialGradient id="secondHunterCockpitGradient" cx="30%" cy="30%" r="70%">
+                            <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#f8f9fa;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#e9ecef;stop-opacity:1" />
+                        </radialGradient>
+                    </defs>
+                    <!-- Main body (Hauptkörper - Rot) -->
+                    <ellipse cx="25" cy="31.25" rx="10" ry="15" fill="url(#secondHunterBodyGradient)" stroke="#7b1e1e" stroke-width="1"/>
+                    <!-- Cockpit (Vordere Ellipse - Weiß) -->
+                    <ellipse cx="25" cy="18.75" rx="5" ry="7.5" fill="url(#secondHunterCockpitGradient)" stroke="#adb5bd" stroke-width="0.5"/>
+                    <!-- Wings (Sekundärteile - Blau) -->
+                    <polygon points="15,37.5 10,43.75 15,40" fill="url(#secondHunterWingsGradient)" stroke="#1f4e79"/>
+                    <polygon points="35,37.5 40,43.75 35,40" fill="url(#secondHunterWingsGradient)" stroke="#1f4e79"/>
+                    <!-- Engine glow (Triebwerksglühen) -->
+                    <ellipse cx="25" cy="46.25" rx="3.75" ry="2.5" fill="#ff4444" opacity="0.8"/>
+                    <ellipse cx="25" cy="47.5" rx="2.5" ry="1.25" fill="#ffff44" opacity="0.9"/>
+                </svg>
+            `;
+        } else {
+            // Erstes Schiff - Grüne Farben mit weißem Cockpit
+            this.spaceship.innerHTML = `
+                <svg viewBox="0 0 ${CONFIG.SPACESHIP_CONFIG.VISUAL.SVG_VIEWBOX_SIZE} ${CONFIG.SPACESHIP_CONFIG.VISUAL.SVG_VIEWBOX_SIZE}" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <!-- Hauptkörper Gradient (Grün-Metallic) -->
+                        <linearGradient id="mainBodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#58d68d;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#27ae60;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#1e8449;stop-opacity:1" />
+                        </linearGradient>
+                        <!-- Sekundärteile Gradient (Orange-Metallic) -->
+                        <linearGradient id="secondaryPartsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#f39c12;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#e67e22;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#d35400;stop-opacity:1" />
+                        </linearGradient>
+                        <!-- Weißes Cockpit Gradient -->
+                        <radialGradient id="whiteCockpitGradient" cx="30%" cy="30%" r="70%">
+                            <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#f8f9fa;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#e9ecef;stop-opacity:1" />
+                        </radialGradient>
+                    </defs>
+                    <!-- Main body (Hauptkörper - Grün) -->
+                    <ellipse cx="25" cy="31.25" rx="10" ry="15" fill="url(#mainBodyGradient)" stroke="#145a32" stroke-width="1"/>
+                    <!-- Cockpit (Vordere Ellipse - Weiß) -->
+                    <ellipse cx="25" cy="18.75" rx="5" ry="7.5" fill="url(#whiteCockpitGradient)" stroke="#adb5bd" stroke-width="0.5"/>
+                    <!-- Wings (Sekundärteile - Orange) -->
+                    <polygon points="15,37.5 10,43.75 15,40" fill="url(#secondaryPartsGradient)" stroke="#a04000"/>
+                    <polygon points="35,37.5 40,43.75 35,40" fill="url(#secondaryPartsGradient)" stroke="#a04000"/>
+                    <!-- Engine glow (Triebwerksglühen) -->
+                    <ellipse cx="25" cy="46.25" rx="3.75" ry="2.5" fill="#ff4444" opacity="0.8"/>
+                    <ellipse cx="25" cy="47.5" rx="2.5" ry="1.25" fill="#ffff44" opacity="0.9"/>
+                </svg>
+            `;
+        }
         this.container.appendChild(this.spaceship);
     }
 
