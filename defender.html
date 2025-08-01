@@ -1214,6 +1214,145 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
+
+        /* Start Screen Navigation */
+        .start-screen-navigation {
+            margin-bottom: 30px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #66aaff;
+            border: 2px solid rgba(68, 136, 255, 0.3);
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(68, 136, 255, 0.2);
+            border-color: #4488ff;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(45deg, #4488ff, #66aaff);
+            color: white;
+            border-color: #4488ff;
+            box-shadow: 0 4px 15px rgba(68, 136, 255, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Start Screen Leaderboard */
+        .start-screen-leaderboard {
+            background: rgba(26, 26, 26, 0.8);
+            border: 2px solid rgba(68, 136, 255, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .start-screen-leaderboard h2 {
+            color: #66aaff;
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            background: linear-gradient(45deg, #4488ff, #66aaff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .highscore-list.compact {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .highscore-entry.compact {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .highscore-entry.compact .rank {
+            font-size: 16px;
+            min-width: 35px;
+        }
+
+        .highscore-entry.compact .player-name {
+            font-size: 14px;
+        }
+
+        .highscore-entry.compact .score-details {
+            font-size: 12px;
+            gap: 10px;
+        }
+
+        .online-section-compact {
+            margin-top: 15px;
+            text-align: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(68, 136, 255, 0.3);
+        }
+
+        .online-button.compact {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 20px;
+        }
+
+        .start-button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #66aaff;
+            border: 2px solid rgba(68, 136, 255, 0.3);
+        }
+
+        .start-button.secondary:hover {
+            background: rgba(68, 136, 255, 0.2);
+            border-color: #4488ff;
+        }
+
+        /* Responsive Design for Start Screen */
+        @media (max-width: 768px) {
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .nav-btn {
+                max-width: 250px;
+                width: 100%;
+            }
+
+            .highscore-entry.compact {
+                flex-direction: column;
+                gap: 5px;
+                text-align: center;
+            }
+
+            .highscore-entry.compact .rank {
+                min-width: auto;
+            }
+        }
         /* Pulsar Endgame Mechanics */
         .pulsar {
             position: absolute;
@@ -1985,30 +2124,49 @@
                     <p>Klicke auf Wörter um sie zu bewegen und vor dem Schiff zu retten!</p>
                     <p>Überlebe so lange wie möglich! 🚀</p>
                     
-                    <div class="difficulty-section">
-                        <h3>Schwierigkeitsgrad wählen:</h3>
-                        <div class="difficulty-buttons">
-                            <button class="difficulty-btn" data-difficulty="leicht">
-                                🟢 LEICHT
-                                <small>Entspannt spielen</small>
-                            </button>
-                            <button class="difficulty-btn selected" data-difficulty="mittel">
-                                🟡 MITTEL
-                                <small>Ausgewogen</small>
-                            </button>
-                            <button class="difficulty-btn" data-difficulty="schwer">
-                                🔴 SCHWER
-                                <small>Hardcore-Modus</small>
-                            </button>
+                    <div class="start-screen-navigation">
+                        <div class="nav-buttons">
+                            <button class="nav-btn active" data-tab="game-setup">🎮 SPIEL STARTEN</button>
+                            <button class="nav-btn" data-tab="leaderboard">🏆 HIGHSCORES</button>
                         </div>
                     </div>
                     
-                    <input type="text" class="player-name-input" id="player-name" placeholder="Dein Name..." maxlength="20">
-                    <div class="error-message" id="name-error">Bitte gib einen Namen ein!</div>
-                    <button class="start-button" onclick="validateAndStartGame()">START GAME</button>
+                    <div id="game-setup" class="tab-content active">
+                        <div class="difficulty-section">
+                            <h3>Schwierigkeitsgrad wählen:</h3>
+                            <div class="difficulty-buttons">
+                                <button class="difficulty-btn" data-difficulty="leicht">
+                                    🟢 LEICHT
+                                    <small>Entspannt spielen</small>
+                                </button>
+                                <button class="difficulty-btn selected" data-difficulty="mittel">
+                                    🟡 MITTEL
+                                    <small>Ausgewogen</small>
+                                </button>
+                                <button class="difficulty-btn" data-difficulty="schwer">
+                                    🔴 SCHWER
+                                    <small>Hardcore-Modus</small>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <input type="text" class="player-name-input" id="player-name" placeholder="Dein Name..." maxlength="20">
+                        <div class="error-message" id="name-error">Bitte gib einen Namen ein!</div>
+                        <button class="start-button" onclick="validateAndStartGame()">START GAME</button>
+                    </div>
+                    
+                    <div id="leaderboard" class="tab-content">
+                        <div id="start-screen-highscores">
+                            ${showStartScreenHighscores()}
+                        </div>
+                        <button class="start-button secondary" onclick="switchToGameSetup()">⬅ ZURÜCK ZUM SPIEL</button>
+                    </div>
                 </div>
             `;
             document.body.appendChild(overlay);
+            
+            // Set up tab navigation
+            setupStartScreenNavigation();
             
             // Load saved difficulty and player name
             const savedDifficulty = localStorage.getItem('wordDefenderDifficulty') || 'mittel';
@@ -2034,8 +2192,11 @@
                 document.getElementById('player-name').value = lastPlayer;
             }
             
-            // Focus on input
-            document.getElementById('player-name').focus();
+            // Focus on input when on game setup tab
+            const gameSetupTab = document.getElementById('game-setup');
+            if (gameSetupTab && gameSetupTab.classList.contains('active')) {
+                document.getElementById('player-name').focus();
+            }
             
             // Allow Enter key to start
             document.getElementById('player-name').addEventListener('keypress', function(e) {
@@ -2043,6 +2204,146 @@
                     validateAndStartGame();
                 }
             });
+        }
+        
+        function setupStartScreenNavigation() {
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            navButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetTab = btn.dataset.tab;
+                    
+                    // Remove active class from all buttons and tabs
+                    navButtons.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(tab => tab.classList.remove('active'));
+                    
+                    // Add active class to clicked button and corresponding tab
+                    btn.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                    
+                    // If switching to leaderboard, refresh it
+                    if (targetTab === 'leaderboard') {
+                        refreshStartScreenLeaderboard();
+                    }
+                    
+                    // If switching to game setup, focus on name input
+                    if (targetTab === 'game-setup') {
+                        setTimeout(() => {
+                            document.getElementById('player-name').focus();
+                        }, 100);
+                    }
+                });
+            });
+        }
+        
+        function showStartScreenHighscores() {
+            const highscores = loadHighscores();
+            
+            return `
+                <div class="start-screen-leaderboard">
+                    <h2>🏆 LOKALE HIGHSCORES</h2>
+                    <ol class="highscore-list compact">
+                        ${highscores.length > 0 
+                            ? highscores.slice(0, 8).map((score, index) => {
+                                const difficultyBadge = score.difficulty ? 
+                                    `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
+                                    
+                                return `
+                                    <li class="highscore-entry compact">
+                                        <div class="rank">#${index + 1}</div>
+                                        <div class="player-info">
+                                            <div class="player-name">${score.name} ${difficultyBadge}</div>
+                                            <div class="score-details">
+                                                <span class="score">${score.score} Punkte</span>
+                                                <span class="time">${formatTime(score.survivalTime)}</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('')
+                            : '<li class="no-scores">Noch keine Highscores vorhanden<br><small>Spiele dein erstes Spiel!</small></li>'
+                        }
+                    </ol>
+                    
+                    <div class="online-section-compact">
+                        <button id="show-online-start" class="online-button compact">
+                            🌐 ONLINE HIGHSCORES
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function refreshStartScreenLeaderboard() {
+            const container = document.getElementById('start-screen-highscores');
+            if (container) {
+                container.innerHTML = showStartScreenHighscores();
+                
+                // Attach online leaderboard button
+                const onlineBtn = document.getElementById('show-online-start');
+                if (onlineBtn) {
+                    onlineBtn.addEventListener('click', showStartScreenOnlineLeaderboard);
+                }
+            }
+        }
+        
+        async function showStartScreenOnlineLeaderboard() {
+            const container = document.getElementById('start-screen-highscores');
+            if (!container) return;
+            
+            // Show loading state
+            container.innerHTML = `
+                <div class="start-screen-leaderboard">
+                    <h2>🌐 ONLINE LEADERBOARD</h2>
+                    <div class="loading">Lade Online Highscores...</div>
+                    <button class="back-button" onclick="refreshStartScreenLeaderboard()">⬅ ZURÜCK ZU LOKALEN SCORES</button>
+                </div>
+            `;
+            
+            // Load online data
+            const onlineScores = await loadOnlineLeaderboard();
+            
+            container.innerHTML = `
+                <div class="start-screen-leaderboard">
+                    <h2>🌐 ONLINE LEADERBOARD</h2>
+                    <ol class="highscore-list compact online">
+                        ${onlineScores.length > 0 
+                            ? onlineScores.slice(0, 10).map((score, index) => {
+                                const difficultyBadge = score.difficulty ? 
+                                    `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
+                                    
+                                return `
+                                    <li class="highscore-entry compact online-entry">
+                                        <div class="rank">#${index + 1}</div>
+                                        <div class="player-info">
+                                            <div class="player-name">${score.name} ${difficultyBadge}</div>
+                                            <div class="score-details">
+                                                <span class="score">${score.score} Punkte</span>
+                                                <span class="time">${formatTime(score.survivalTime)}</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('')
+                            : '<li class="no-scores">Noch keine Online-Scores vorhanden</li>'
+                        }
+                    </ol>
+                    <button class="back-button" onclick="refreshStartScreenLeaderboard()">⬅ ZURÜCK ZU LOKALEN SCORES</button>
+                </div>
+            `;
+        }
+        
+        function switchToGameSetup() {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            
+            document.querySelector('.nav-btn[data-tab="game-setup"]').classList.add('active');
+            document.getElementById('game-setup').classList.add('active');
+            
+            setTimeout(() => {
+                document.getElementById('player-name').focus();
+            }, 100);
         }
         
         function validateAndStartGame() {
