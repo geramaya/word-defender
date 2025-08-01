@@ -1575,10 +1575,10 @@
         
         function calculateAttackInterval() {
             const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-            if (remainingWords >= 9) return 10000;      // 10s
-            if (remainingWords >= 6) return 9000;       // 9s  
-            if (remainingWords >= 3) return 8000;       // 8s
-            return 7000;                                // 7s (final phase)
+            if (remainingWords >= 9) return 8000;       // 8s (war 10s)
+            if (remainingWords >= 6) return 7000;       // 7s (war 9s)  
+            if (remainingWords >= 3) return 6000;       // 6s (war 8s)
+            return 5000;                                // 5s (war 7s) - final phase
         }
         
         function getSpaceshipAggressionLevel() {
