@@ -1009,6 +1009,10 @@
         let gameStarted = false;
         let gameStartTime = 0;
 
+        // Game state variables with pause functionality
+        let isPaused = false;
+        let pauseStartTime = 0;
+
         
         // Global array for active homing projectiles
         let activeProjectiles = [];
@@ -1036,6 +1040,10 @@
         let pulsarCycleTime = 1000; // 1 second for phase 1, 0.5 second for phase 2
         let pulsarCycleCount = 0;
         let pulsarActive = false; // Whether currently pulling words
+
+        // Variablen für das Autoschild-System
+        let autoShieldCount = 0;
+        const MAX_AUTO_SHIELDS = 2;
 
         let mineSpawnInterval = 30000; // 30 seconds
         let mineLifespan = 10000; // 10 seconds
@@ -1201,7 +1209,94 @@
             osc2.stop(audioContext.currentTime + 0.3);
             osc3.stop(audioContext.currentTime + 0.45);
         }
-        
+
+        function createSoftWooshSound() {
+            // --- SETUP ---
+            const now = audioContext.currentTime;
+            const duration = 0.50;
+
+            // 1. Oszillatoren für den "Wumms" des Nachbrenners
+            const osc = audioContext.createOscillator();
+            osc.type = 'sawtooth';
+
+            // NEU: Sub-Oszillator für das Bass-Fundament
+            const subOsc = audioContext.createOscillator();
+            subOsc.type = 'sine'; // Sinuswelle für einen reinen, tiefen Bass
+
+            // Eigene Gain-Regler für jeden Oszillator
+            const oscGain = audioContext.createGain();
+            const subOscGain = audioContext.createGain(); // NEU
+
+            // 2. Rauschen für das "Woosh"-Geräusch
+            const bufferSize = audioContext.sampleRate * duration;
+            const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const output = buffer.getChannelData(0);
+            
+            // GEÄNDERT: Rauschen wird jetzt als "Brown Noise" generiert für mehr Tiefe
+            let lastOut = 0.0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                output[i] = (lastOut + (0.02 * white)) / 1.02;
+                lastOut = output[i];
+                output[i] *= 3.5; // Lautstärke des Rauschens anheben
+            }
+            const noiseSource = audioContext.createBufferSource();
+            noiseSource.buffer = buffer;
+
+            // Filter für das Rauschen
+            const noiseFilter = audioContext.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+
+            // 3. Haupt-Lautstärkeregler
+            const masterGain = audioContext.createGain();
+
+            // 4. Alles miteinander verbinden
+            osc.connect(oscGain);
+            oscGain.connect(masterGain);
+            subOsc.connect(subOscGain); // NEU
+            subOscGain.connect(masterGain); // NEU
+            noiseSource.connect(noiseFilter);
+            noiseFilter.connect(masterGain);
+            masterGain.connect(audioContext.destination);
+
+            // --- AUTOMATION ---
+
+            // A) Oszillator-Automation (Zünd-Impuls)
+            osc.frequency.setValueAtTime(120, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.1);
+            oscGain.gain.setValueAtTime(0, now);
+            oscGain.gain.linearRampToValueAtTime(0.4, now + 0.02);
+            oscGain.gain.linearRampToValueAtTime(0, now + 0.15); // Etwas längeres Ausklingen
+
+            // B) Sub-Bass-Automation (Das Fundament) - NEU
+            subOsc.frequency.setValueAtTime(60, now); // Eine Oktave tiefer
+            subOsc.frequency.exponentialRampToValueAtTime(25, now + 0.2);
+            subOscGain.gain.setValueAtTime(0, now);
+            subOscGain.gain.linearRampToValueAtTime(0.7, now + 0.05); // Schwillt etwas langsamer an
+            subOscGain.gain.exponentialRampToValueAtTime(0.01, now + duration); // Hält den Bass länger
+
+            // C) Rauschen-Automation (der Schweif)
+            noiseFilter.frequency.setValueAtTime(8000, now);
+            noiseFilter.frequency.exponentialRampToValueAtTime(100, now + duration * 0.9);
+
+            // D) Gesamt-Lautstärke-Automation
+            // ANGEPASST: Etwas leiser, da der Sound jetzt "dichter" ist und mehr Druck hat
+            const peakVolume = 0.60;
+            masterGain.gain.setValueAtTime(0, now);
+            masterGain.gain.linearRampToValueAtTime(peakVolume, now + 0.03);
+            masterGain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+            // --- START & STOP ---
+            osc.start(now);
+            subOsc.start(now); // NEU
+            noiseSource.start(now);
+
+            osc.stop(now + duration);
+            subOsc.stop(now + duration); // NEU
+            noiseSource.stop(now + duration);
+        }        
+
+        // Create explosion sound for space beacon destruction        
         function createExplosionSound() {
             // Create complex explosion sound with multiple layers
             const osc1 = audioContext.createOscillator();
@@ -1293,7 +1388,7 @@
                 this.target = target;
                 this.speed = speed;
                 this.turnRate = turnRate || 0.04; // How quickly it can turn toward target
-                this.lifespan = 1500; // 1.5 seconds max lifetime
+                this.lifespan = 2500; // 2.5 seconds max lifetime
                 this.age = 0;
                 
                 // Calculate initial velocity direction toward target
@@ -1337,50 +1432,52 @@
             update(deltaTime) {
                 this.age += deltaTime;
 
-                // Lebensdauer oder Ziel verloren -> zerstören
                 if (this.age >= this.lifespan || !this.target || this.target.isDestroyed) {
+                    // NEU: Punkte für erfolgreiche Verteidigung vergeben wenn Homing Projectile verfehlt
+                    if (this.age >= this.lifespan) {
+                        console.log('Homing projectile timed out - defense successful! Points awarded.');
+                        awardPoints();
+                    } else if (this.target && this.target.isDestroyed) {
+                        console.log('Homing projectile target destroyed by other means - no points awarded.');
+                    }
                     this.destroy();
                     return false;
                 }
 
-                const targetRect = this.target.element.getBoundingClientRect();
-                // Wichtig: Die Position des Ziels muss relativ zur Spielfläche (nicht zum Fenster) sein.
                 const targetX = this.target.x + this.target.width / 2;
                 const targetY = this.target.y + this.target.height / 2;
 
-                // 1. Berechne Vektor zum Ziel
+                // --- NEUE KAPSEL-KOLLISIONSPRÜFUNG ---
+                const collisionRadius = 15 + Math.min(this.target.width, this.target.height) * 0.4;
+                const distanceToCenter = Math.sqrt(Math.pow(targetX - this.x, 2) + Math.pow(targetY - this.y, 2));
+
+                if (distanceToCenter < collisionRadius) {
+                    this.hitTarget();
+                    return false;
+                }
+                // --- ENDE NEUE KOLLISIONSPRÜFUNG ---
+
                 const dirX = targetX - this.x;
                 const dirY = targetY - this.y;
                 const distance = Math.sqrt(dirX * dirX + dirY * dirY);
 
-                // Kollision prüfen
-                if (distance < 25) {
-                    this.hitTarget();
-                    return false;
-                }
-
-                // 2. Normalisiere Richtungsvektor
                 const normDirX = dirX / distance;
                 const normDirY = dirY / distance;
 
-                // 3. Berechne "Lenk"-Kraft und passe Geschwindigkeit an
                 this.vx += (normDirX * this.speed - this.vx) * this.turnRate;
                 this.vy += (normDirY * this.speed - this.vy) * this.turnRate;
 
-                // 4. Normalisiere die Geschwindigkeit, um konstanten Speed zu halten
                 const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                 this.vx = (this.vx / currentSpeed) * this.speed;
                 this.vy = (this.vy / currentSpeed) * this.speed;
 
-                // 5. Aktualisiere Position basierend auf Zeit (korrekte Umrechnung in Sekunden)
                 this.x += this.vx * (deltaTime / 1000);
                 this.y += this.vy * (deltaTime / 1000);
 
-                // Die Position des DOM-Elements setzen
                 this.element.style.left = this.x + 'px';
                 this.element.style.top = this.y + 'px';
                 
-                return true; // Projektil ist noch aktiv
+                return true;
             }
             
             checkCollision() {
@@ -1439,14 +1536,14 @@
         function calculateTargetingTime() {
             const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
             const maxWords = 12;
-            const minTime = 300; // 0.3 seconds minimum (faster than current)
-            const maxTime = 1000; // 1.0 seconds maximum (current)
+            const minTime = 1200; // 1 second minimum (faster than current)
+            const maxTime = 1500; // 1.5 seconds maximum (current)
             
             // Calculate targeting time: more words = longer time, fewer words = shorter time
             const wordRatio = remainingWords / maxWords;
             const targetingTime = minTime + (maxTime - minTime) * wordRatio;
             
-            return targetingTime; // 1000ms → 300ms
+            return targetingTime; // 1500ms → 1000ms
         }
         
         function calculateSpaceshipAggressiveness() {
@@ -1478,10 +1575,10 @@
         
         function calculateAttackInterval() {
             const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
-            if (remainingWords >= 9) return 10000;      // 10s
-            if (remainingWords >= 6) return 9000;       // 9s  
-            if (remainingWords >= 3) return 8000;       // 8s
-            return 7000;                                // 7s (final phase)
+            if (remainingWords >= 9) return 8000;       // 8s (war 10s)
+            if (remainingWords >= 6) return 7000;       // 7s (war 9s)  
+            if (remainingWords >= 3) return 6000;       // 6s (war 8s)
+            return 5000;                                // 5s (war 7s) - final phase
         }
         
         function getSpaceshipAggressionLevel() {
@@ -1659,29 +1756,37 @@
             currentScore += points;
             consecutiveSuccessfulDefenses++;
             defendedWordsCounter++;
-            
-            // After 4th successful defense, reduce attack interval
+
+            // NEU: Logik zum Erhalten von Autoschilden
+            // Bedingung: Mehr als 3 erfolgreiche Verteidigungen in Folge und weniger als die max. Anzahl an Schilden.
+            if (consecutiveSuccessfulDefenses > 3 && autoShieldCount < MAX_AUTO_SHIELDS) {
+                if (consecutiveSuccessfulDefenses === 4 || consecutiveSuccessfulDefenses === 8) {
+                    autoShieldCount++;
+                    console.log(`Autoschild erhalten! Gesamt: ${autoShieldCount}`);
+                }
+                // Hier könnte man einen Sound oder einen visuellen Effekt abspielen
+                // z.B. createAutoShieldGetSound(); 
+            }
+
+            // After 4th successful defense, reduce attack interval (bestehende Logik)
             if (consecutiveSuccessfulDefenses === 4) {
                 attackInterval = 8000; // Reduce from 10s to 8s
                 console.log('Attack interval reduced to 8 seconds!');
             }
-            
-            // Beacon deployment logic
+
+            // Beacon deployment logic (bestehende Logik)
             beaconDeploymentCounter++;
             if (beaconDeploymentCounter === nextBeaconAt) {
                 deployBeacon();
-                
-                // Set next beacon deployment
                 if (nextBeaconAt === 4) {
-                    nextBeaconAt = 6; // Next at 6th defense (4 + 2)
+                    nextBeaconAt = 6;
                 } else {
-                    nextBeaconAt += 2; // Every 2nd defense after that
+                    nextBeaconAt += 2;
                 }
-                
                 console.log(`Beacon deployed! Next beacon at defense ${nextBeaconAt}`);
             }
-            
-            console.log(`Awarded ${points} points. Total: ${currentScore}. Consecutive defenses: ${consecutiveSuccessfulDefenses}. Total defended: ${defendedWordsCounter}. Beacon counter: ${beaconDeploymentCounter}`);
+
+            console.log(`Awarded ${points} points. Total: ${currentScore}. Consecutive defenses: ${consecutiveSuccessfulDefenses}.`);
         }
         
         function resetScoreStreak() {
@@ -1800,6 +1905,11 @@
                     </div>
                     <div class="shield-hint">[SPACE] für Schild</div>
                 </div>
+                <div class="ui-element shield-system" style="margin-left: 20px;">
+                    <div class="shield-counter">
+                        🛡️ AUTO x<span id="auto-shield-count">0</span>
+                    </div>
+                </div>                
             `;
             document.body.appendChild(gameUI);
         }
@@ -1876,6 +1986,14 @@
             
             // Update shield system
             updateShieldUI();
+
+            // NEU: Autoschild-Zähler aktualisieren
+            const autoShieldCountElement = document.getElementById('auto-shield-count');
+            if (autoShieldCountElement) {
+                autoShieldCountElement.textContent = autoShieldCount;
+                // Optional: Den Zähler hervorheben, wenn Schilde vorhanden sind
+                autoShieldCountElement.parentElement.parentElement.style.color = autoShieldCount > 0 ? '#55ff55' : '#44ffaa';
+            }            
             
             // Update emergency state
             updateEmergencyState();
@@ -1889,7 +2007,9 @@
                 const now = Date.now();
                 if (now - lastShieldTime >= shieldCooldown) {
                     shieldCount++;
-                    lastShieldTime = now;
+                    console.log(`Schild regeneriert. Aktuell: ${shieldCount}`);
+                    // WICHTIG: Setze den Timer-Startpunkt für den NÄCHSTEN Schild neu.
+                    lastShieldTime = Date.now(); 
                 }
             }
         }
@@ -2181,6 +2301,7 @@
                 this.aggressionModeTimer = 0;
                 this.isInForcedAggressionMode = false;
                 this.forcedAggressionDuration = 0;
+                this.hasFiredShot = false; // Verfolgt ob bereits ein Schuss in diesem Angriff abgegeben wurde
                 
                 // Instanz-spezifische Timer
                 this.shootTimer = null;
@@ -2238,7 +2359,10 @@
                 
                 // Play booster sound
                 try {
-                    createBoosterSound();
+                    // createBoosterSound(); // Uncomment if you have a booster sound function
+                    // Ansonsten nur den neuen, leisen "Woosh"
+                    createSoftWooshSound();
+
                 } catch (e) {
                     console.log('Audio not available:', e);
                 }
@@ -2463,13 +2587,13 @@
                 
                 this.shootTimer = setTimeout(() => {
                     hasFirstAttackHappened = true;
-                    if (!this.targetingWord) {
+                    if (!this.targetingWord && !this.hasFiredShot) {
                         this.shootAtRandomWord();
                     }
                     
                     const scheduleNextAttack = () => {
                         this.shootTimer = setTimeout(() => {
-                            if (!this.targetingWord) {
+                            if (!this.targetingWord && !this.hasFiredShot) {
                                 this.shootAtRandomWord();
                             }
                             scheduleNextAttack();
@@ -2554,19 +2678,23 @@
                 const targetRect = target.element.getBoundingClientRect();
                 const targetCenterX = targetRect.left + targetRect.width / 2;
                 const targetCenterY = targetRect.top + targetRect.height / 2;
+
+                // --- NEUE KAPSEL-KOLLISIONSLOGIK ---
+                const collisionRadius = 15 + Math.min(target.width, target.height) * 0.4;
                 
                 const distance = Math.sqrt(
                     Math.pow(projectileX - targetCenterX, 2) + 
                     Math.pow(projectileY - targetCenterY, 2)
                 );
                 
-                return distance <= this.COLLISION_RADIUS;
+                return distance <= collisionRadius;
             }
             
             startTargeting(target) {
                 if (this.targetingWord) return; // Already targeting
                 
                 this.targetingWord = target;
+                this.hasFiredShot = false; // Neuer Angriff beginnt - Schuss-Status zurücksetzen
                 target.element.classList.add('targeted'); // Add red glow
                 this.showRadarPing(target);
                 
@@ -2693,14 +2821,17 @@
                     this.radarPing = null;
                 }
                 
+                // NEU: Entferne die Ziel-Markierung vom DOM, aber behalte targetingWord 
+                // für Schild-Aktivierung während Projektil-Flug
                 if (this.targetingWord) {
                     this.targetingWord.element.classList.remove('targeted');
-                    this.targetingWord = null;
+                    // WICHTIG: targetingWord wird NICHT auf null gesetzt!
+                    // Es bleibt gesetzt für Schild-Aktivierung während normaler Projektile
                 }
             }
             
             executeShot() {
-                if (!this.targetingWord) return;
+                if (!this.targetingWord || this.hasFiredShot) return; // Verhindere mehrfache Schüsse pro Angriff
                 
                 // Determine shot type first
                 const shotType = this.calculateShotType();
@@ -2734,6 +2865,7 @@
                     if (Math.abs(angleDiff) <= maxFiringAngle) {
                         // Ziel im Schusswinkel: feuern!
                         console.log(`Firing ${shotType.name}! Angle diff: ${angleDiff.toFixed(1)}° (within ±${maxFiringAngle}°), Range: ${distance.toFixed(0)}/${effectiveRange.toFixed(0)}`);
+                        this.hasFiredShot = true; // Markiere dass ein Schuss abgegeben wurde
                         this.fireLaser(this.targetingWord);
                         this.cancelTargeting();
                     } else {
@@ -2924,8 +3056,17 @@
                     );
                     activeProjectiles.push(homingProjectile);
                     console.log('Homing projectile launched at', target.element.textContent);
+                    
+                    // Ultra-Schuss beendet - Flags zurücksetzen da Homing Projectile eigene Logik hat
+                    this.targetingWord = null;
+                    this.hasFiredShot = false;
+                    
                     return; // Wichtig: Beende die Funktion hier für Ultra-Schüsse
                 }
+                
+                // NEU: Für normale Projektile speichere das Zielwort während der Flugzeit
+                this.targetingWord = target;
+                console.log(`Normal projectile targeting: ${target.element.textContent}`);
                 
                 // Regular projectiles for non-ultra shots
                 const projectile = document.createElement('div');
@@ -2978,6 +3119,9 @@
                         setTimeout(() => {
                             projectile.remove();
                             console.log('Projectile hit target!');
+                            // NEU: Angriff beendet - beide Flags zurücksetzen
+                            this.targetingWord = null;
+                            this.hasFiredShot = false;
                             this.explodeWord(target);
                         }, 50);
                     }
@@ -3003,6 +3147,10 @@
                     if (!collisionDetected) {
                         projectile.remove();
                         console.log('Projectile missed target!');
+                        
+                        // NEU: Angriff beendet - beide Flags zurücksetzen
+                        this.targetingWord = null;
+                        this.hasFiredShot = false;
                         
                         // Award points for successful defense - shot missed
                         awardPoints();
@@ -3051,33 +3199,36 @@
             }
             
             explodeWord(target) {
+                // NEU: Autoschild-Logik. Diese hat die höchste Priorität.
+                if (autoShieldCount > 0) {
+                    autoShieldCount--; // Verbrauche einen Autoschild
+                    console.log('Autoschild hat das Wort gerettet! Verbleibend:', autoShieldCount);
+
+                    // Visuelles Feedback für den Spieler
+                    createShieldDeflectionEffect(target); // Wir können den gleichen Effekt wie beim manuellen Schild nutzen
+                    createShieldDeflectionSound(); // Und den gleichen Sound
+
+                    // Wichtig: Beende die Funktion hier, um die Zerstörung zu verhindern.
+                    return; 
+                }
+
+                // Bestehende Logik für den manuellen Schild (wird nur erreicht, wenn kein Autoschild verfügbar war)
                 console.log('Explosion attempt on word:', target.element.textContent, 'isShielded:', target.isShielded);
-                
-                // Check if target is shielded
                 if (target.isShielded) {
                     console.log('Shield deflection successful!');
-                    // Shield deflection effect
                     createShieldDeflectionEffect(target);
                     removeShield(target);
-                    
-                    // Award points for successful defense
                     awardPoints();
-                    
-                    // Play shield deflection sound
                     try {
                         createShieldDeflectionSound();
                     } catch (e) {
                         console.log('Audio not available:', e);
                     }
-                    
-                    return; // Don't destroy shielded word
+                    return;
                 }
-                
+
                 console.log('Word exploded - no shield protection');
-                
-                // Reset score streak when word is destroyed
                 resetScoreStreak();
-                
                 target.explode();
             }
         }
@@ -4115,6 +4266,9 @@
             showInfoOverlay();
             
             function animate() {
+                // NEU: Überprüfe, ob das Spiel pausiert ist
+                if (isPaused) { requestAnimationFrame(animate); return; }
+
                 // Update des ersten Raumschiffs
                 if (spaceshipController && gameStarted) {
                     spaceshipController.update();
@@ -4180,17 +4334,17 @@
                     }
                 });
             });
-            
-            // Keyboard controls for shield system
+
+            // Logik zum Aktivieren des Schildes
             document.addEventListener('keydown', function(e) {
                 if (e.code === 'Space' && gameStarted) {
                     e.preventDefault();
-                    
+
                     if (shieldCount > 0) {
                         let targetedWord = null;
                         let threatSource = 'unbekannt';
 
-                        // HÖCHSTE PRIORITÄT: Prüfe, ob eine zielsuchende Rakete aktiv ist.
+                        // Priorität 1: Aktive Ultraschuss-Projektile
                         if (activeProjectiles.length > 0) {
                             const activeHomingProjectile = activeProjectiles[0];
                             if (activeHomingProjectile && activeHomingProjectile.target && !activeHomingProjectile.target.isDestroyed) {
@@ -4199,9 +4353,8 @@
                             }
                         }
                         
-                        // Wenn keine Rakete aktiv ist, prüfe die anderen Bedrohungen.
+                        // Priorität 2: Aktive Minen-Targeting
                         if (!targetedWord) {
-                            // Prüfung der Minen (höhere Priorität als das Raumschiff selbst)
                             for (let mine of floatingMines) {
                                 if (mine.isTargeting && mine.targetingWord) {
                                     targetedWord = mine.targetingWord;
@@ -4218,21 +4371,31 @@
                                     }
                                 }
                             }
-                            // Letzte Priorität: Das Raumschiff, das gerade ein Ziel anvisiert.
-                            if (!targetedWord && spaceshipController && spaceshipController.targetingWord) {
-                                targetedWord = spaceshipController.targetingWord;
-                                threatSource = 'Raumschiff';
-                            }
+                        }
+                        
+                        // Priorität 3: Raumschiff-Targeting (während Radar oder normaler Schuss unterwegs)
+                        if (!targetedWord && spaceshipController && spaceshipController.targetingWord) {
+                            targetedWord = spaceshipController.targetingWord;
+                            threatSource = 'Raumschiff (Radar/Zielung)';
+                        }
+                        
+                        // NEU - Priorität 4: Auch zweiter Jäger berücksichtigen
+                        if (!targetedWord && secondSpaceshipController && secondSpaceshipController.targetingWord) {
+                            targetedWord = secondSpaceshipController.targetingWord;
+                            threatSource = 'Zweiter Jäger (Radar/Zielung)';
                         }
 
-                        // Wenn ein Ziel durch eine beliebige Bedrohung identifiziert wurde:
                         if (targetedWord) {
                             if (activateShield(targetedWord)) {
-                                shieldCount--; // Schild erst hier verbrauchen.
+                                // NEU: Wir prüfen, ob die Schilde vorher voll waren.
+                                if (shieldCount === maxShields) {
+                                    lastShieldTime = Date.now(); // Starte den Cooldown-Timer JETZT.
+                                }
+                                shieldCount--; // Verbrauche den Schild.
                                 console.log(`Schild aktiviert auf "${targetedWord.element.textContent}" gegen ${threatSource}. Verbleibend: ${shieldCount}`);
                             }
                         } else {
-                            console.log('Schild-Einsatz nicht möglich: Keine aktive Bedrohung.');
+                            console.log('Schild-Einsatz nicht möglich: Keine aktive Bedrohung erkannt.');
                         }
                     } else {
                         console.log('Keine Schilde verfügbar.');
@@ -4241,7 +4404,35 @@
             });
             
             animate();
+            
         });
+
+        // Am Ende deines Scripts, im DOMContentLoaded-Listener, hinzufügen
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Spieler hat den Tab verlassen -> Pausieren
+                if (gameStarted && !isPaused) {
+                    isPaused = true;
+                    pauseStartTime = Date.now();
+                    console.log('Spiel pausiert (Tab verlassen)');
+                }
+            } else {
+                // Spieler ist zum Tab zurückgekehrt -> Fortsetzen
+                if (gameStarted && isPaused) {
+                    const pauseDuration = Date.now() - pauseStartTime;
+                    // Wichtig: Korrigiere die Startzeit, damit der Timer nicht springt
+                    gameStartTime += pauseDuration; 
+                    // Korrigiere auch den letzten Schild-Timer
+                    if(lastShieldTime > 0) {
+                        lastShieldTime += pauseDuration;
+                    }
+                
+                    isPaused = false;
+                    console.log(`Spiel fortgesetzt nach ${Math.round(pauseDuration / 1000)}s Pause.`);
+                }
+            }
+        });
+
     </script>
 </head>
 <body>
