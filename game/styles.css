@@ -448,6 +448,53 @@ body {
     color: #ffcc88;
 }
 
+/* Filter buttons for difficulty selection */
+.difficulty-filter-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px 0;
+    flex-wrap: wrap;
+}
+
+.difficulty-filter-buttons.fullscreen {
+    margin: 20px 0;
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    backdrop-filter: blur(5px);
+}
+
+.filter-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.filter-btn.active {
+    background: rgba(68, 170, 255, 0.3);
+    border-color: #44aaff;
+    color: #44aaff;
+    box-shadow: 0 0 15px rgba(68, 170, 255, 0.5);
+}
+
+.loading-item {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+    padding: 20px;
+}
+
 .error-message {
     color: #ff4444;
     font-size: 14px;

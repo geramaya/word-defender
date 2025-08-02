@@ -139,6 +139,41 @@ export class SecureStorage {
         
         return false;
     }
+    
+    /**
+     * Filtert Scores nach Schwierigkeitsgrad
+     * @param {Array} scores - Array der Scores
+     * @param {string} difficulty - Schwierigkeitsgrad ('alle', 'leicht', 'mittel', 'schwer')
+     * @returns {Array} Gefilterte Scores
+     */
+    static filterByDifficulty(scores, difficulty = 'alle') {
+        if (difficulty === 'alle') {
+            return scores;
+        }
+        
+        return scores.filter(score => score.difficulty === difficulty);
+    }
+    
+    /**
+     * Gruppiert Scores nach Schwierigkeitsgrad für Statistiken
+     * @param {Array} scores - Array der Scores
+     * @returns {Object} Gruppierte Scores mit Statistiken
+     */
+    static getScoreStatistics(scores) {
+        const stats = {
+            alle: scores,
+            leicht: scores.filter(s => s.difficulty === 'leicht'),
+            mittel: scores.filter(s => s.difficulty === 'mittel'),
+            schwer: scores.filter(s => s.difficulty === 'schwer')
+        };
+        
+        // Füge Anzahl für jede Kategorie hinzu
+        Object.keys(stats).forEach(key => {
+            stats[key + '_count'] = stats[key].length;
+        });
+        
+        return stats;
+    }
 }
 
 export default SecureStorage;

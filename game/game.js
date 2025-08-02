@@ -67,6 +67,10 @@ let defendedWordsCounter = 0;
 // Sound system
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
+// Sound limiting to prevent multiple simultaneous boost sounds
+let lastBoostSoundTime = 0;
+const BOOST_SOUND_COOLDOWN = 500; // 500ms minimum between boost sounds
+
 function createBoosterSound() {
     // Create multiple oscillators for complex jet afterburner sound
     const osc1 = audioContext.createOscillator();
@@ -796,34 +800,30 @@ function setupStartScreenNavigation() {
 
 function showStartScreenHighscores() {
     const highscores = loadHighscores();
+    const stats = SecureStorage.getScoreStatistics(highscores);
     
     return `
         <div class="start-screen-leaderboard">
             <h2>🏆 LOKALE HIGHSCORES</h2>
-            <ol class="highscore-list compact">
-                ${highscores.length > 0 
-                    ? highscores.slice(0, 8).map((score, index) => {
-                        const difficultyBadge = score.difficulty ? 
-                            `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
-                        
-                        const flaggedBadge = score.flagged ? 
-                            `<span class="flagged-badge" title="Verdächtiger Score">⚠️</span>` : '';
-                            
-                        return `
-                            <li class="highscore-entry compact ${score.flagged ? 'flagged' : ''}">
-                                <div class="rank">#${index + 1}</div>
-                                <div class="player-info">
-                                    <div class="player-name">${score.name} ${difficultyBadge} ${flaggedBadge}</div>
-                                    <div class="score-details">
-                                        <span class="score">${score.score} Punkte</span>
-                                        <span class="time">${CONFIG.CONFIG_UTILS.formatTime(score.survivalTime)}</span>
-                                    </div>
-                                </div>
-                            </li>
-                        `;
-                    }).join('')
-                    : '<li class="no-scores">Noch keine Highscores vorhanden<br><small>Spiele dein erstes Spiel!</small></li>'
-                }
+            
+            <!-- Difficulty Filter Buttons -->
+            <div class="difficulty-filter-buttons">
+                <button class="filter-btn active" data-filter="alle">
+                    🎯 ALLE (${stats.alle_count})
+                </button>
+                <button class="filter-btn" data-filter="leicht">
+                    🟢 LEICHT (${stats.leicht_count})
+                </button>
+                <button class="filter-btn" data-filter="mittel">
+                    🟡 MITTEL (${stats.mittel_count})
+                </button>
+                <button class="filter-btn" data-filter="schwer">
+                    🔴 SCHWER (${stats.schwer_count})
+                </button>
+            </div>
+            
+            <ol class="highscore-list compact" id="local-filtered-scores">
+                ${renderFilteredScores(highscores, 'alle', 8)}
             </ol>
             
             <div class="online-section-compact">
@@ -833,6 +833,39 @@ function showStartScreenHighscores() {
             </div>
         </div>
     `;
+}
+
+function renderFilteredScores(scores, difficulty = 'alle', limit = 10, isOnline = false) {
+    const filteredScores = SecureStorage.filterByDifficulty(scores, difficulty);
+    const limitedScores = filteredScores.slice(0, limit);
+    
+    if (limitedScores.length === 0) {
+        const difficultyText = difficulty === 'alle' ? '' : ` (${difficulty.toUpperCase()})`;
+        return `<li class="no-scores">Noch keine Scores${difficultyText} vorhanden<br><small>${isOnline ? 'Spiele online oder' : 'Spiele dein erstes Spiel!'}</small></li>`;
+    }
+    
+    return limitedScores.map((score, index) => {
+        const difficultyBadge = score.difficulty ? 
+            `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
+        
+        const flaggedBadge = score.flagged ? 
+            `<span class="flagged-badge" title="Verdächtiger Score">⚠️</span>` : '';
+            
+        const entryClass = isOnline ? 'online-entry' : '';
+        
+        return `
+            <li class="highscore-entry compact ${entryClass} ${score.flagged ? 'flagged' : ''}">
+                <div class="rank">#${index + 1}</div>
+                <div class="player-info">
+                    <div class="player-name">${score.name} ${difficultyBadge} ${flaggedBadge}</div>
+                    <div class="score-details">
+                        <span class="score">${score.score} Punkte</span>
+                        <span class="time">${CONFIG.CONFIG_UTILS.formatTime(score.survivalTime)}</span>
+                    </div>
+                </div>
+            </li>
+        `;
+    }).join('');
 }
 
 function refreshStartScreenLeaderboard() {
@@ -845,6 +878,65 @@ function refreshStartScreenLeaderboard() {
         if (onlineBtn) {
             onlineBtn.addEventListener('click', showStartScreenOnlineLeaderboard);
         }
+        
+        // Attach filter event listeners for local leaderboard
+        attachFilterEventListeners('local');
+    }
+}
+
+function attachFilterEventListeners(mode = 'local') {
+    const filterButtons = document.querySelectorAll(`.filter-btn[data-mode="${mode}"], .filter-btn:not([data-mode])`);
+    
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all filter buttons in this mode
+            filterButtons.forEach(b => b.classList.remove('active'));
+            
+            // Add active class to clicked button
+            btn.classList.add('active');
+            
+            const difficulty = btn.dataset.filter;
+            
+            if (mode === 'online') {
+                updateOnlineFilteredScores(difficulty);
+            } else if (mode === 'fullscreen') {
+                updateFullscreenFilteredScores(difficulty);
+            } else {
+                updateLocalFilteredScores(difficulty);
+            }
+        });
+    });
+}
+
+function updateLocalFilteredScores(difficulty) {
+    const container = document.getElementById('local-filtered-scores');
+    const highscores = loadHighscores();
+    
+    if (container) {
+        container.innerHTML = renderFilteredScores(highscores, difficulty, 8, false);
+    }
+}
+
+function updateFullscreenFilteredScores(difficulty) {
+    const container = document.getElementById('fullscreen-filtered-scores');
+    const highscores = loadHighscores();
+    
+    if (container) {
+        // Check if we're in a game over context and get the current score
+        const currentScoreData = window.currentGameOverScore || null;
+        container.innerHTML = renderFullscreenScores(highscores, difficulty, currentScoreData);
+    }
+}
+
+async function updateOnlineFilteredScores(difficulty) {
+    const container = document.getElementById('online-filtered-scores');
+    
+    if (container) {
+        // Show loading while filtering
+        container.innerHTML = '<li class="loading-item">Filtere Scores...</li>';
+        
+        const onlineScores = await loadOnlineLeaderboard();
+        container.innerHTML = renderFilteredScores(onlineScores, difficulty, 10, true);
     }
 }
 
@@ -863,35 +955,37 @@ async function showStartScreenOnlineLeaderboard() {
     
     // Load online data
     const onlineScores = await loadOnlineLeaderboard();
+    const stats = SecureStorage.getScoreStatistics(onlineScores);
     
     container.innerHTML = `
         <div class="start-screen-leaderboard">
             <h2>🌐 ONLINE LEADERBOARD</h2>
-            <ol class="highscore-list compact online">
-                ${onlineScores.length > 0 
-                    ? onlineScores.slice(0, 10).map((score, index) => {
-                        const difficultyBadge = score.difficulty ? 
-                            `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
-                            
-                        return `
-                            <li class="highscore-entry compact online-entry">
-                                <div class="rank">#${index + 1}</div>
-                                <div class="player-info">
-                                    <div class="player-name">${score.name} ${difficultyBadge}</div>
-                                    <div class="score-details">
-                                        <span class="score">${score.score} Punkte</span>
-                                        <span class="time">${CONFIG.CONFIG_UTILS.formatTime(score.survivalTime)}</span>
-                                    </div>
-                                </div>
-                            </li>
-                        `;
-                    }).join('')
-                    : '<li class="no-scores">Noch keine Online-Scores vorhanden</li>'
-                }
+            
+            <!-- Online Difficulty Filter Buttons -->
+            <div class="difficulty-filter-buttons">
+                <button class="filter-btn active" data-filter="alle" data-mode="online">
+                    🎯 ALLE (${stats.alle_count})
+                </button>
+                <button class="filter-btn" data-filter="leicht" data-mode="online">
+                    🟢 LEICHT (${stats.leicht_count})
+                </button>
+                <button class="filter-btn" data-filter="mittel" data-mode="online">
+                    🟡 MITTEL (${stats.mittel_count})
+                </button>
+                <button class="filter-btn" data-filter="schwer" data-mode="online">
+                    🔴 SCHWER (${stats.schwer_count})
+                </button>
+            </div>
+            
+            <ol class="highscore-list compact online" id="online-filtered-scores">
+                ${renderFilteredScores(onlineScores, 'alle', 10, true)}
             </ol>
             <button class="back-button" onclick="refreshStartScreenLeaderboard()">⬅ ZURÜCK ZU LOKALEN SCORES</button>
         </div>
     `;
+    
+    // Attach filter event listeners for online leaderboard
+    attachFilterEventListeners('online');
 }
 
 function switchToGameSetup() {
@@ -938,6 +1032,16 @@ function loadHighscores() {
     return SecureStorage.loadSecureHighscores();
 }
 
+// Helper function to get difficulty sorting value
+function getDifficultySortValue(difficulty) {
+    switch (difficulty) {
+        case 'schwer': return 3;
+        case 'mittel': return 2;
+        case 'leicht': return 1;
+        default: return 0; // Für alte Scores ohne Schwierigkeit
+    }
+}
+
 function saveHighscore(playerName, survivalTime, finalScore) {
     const highscores = loadHighscores();
     const newScore = {
@@ -970,11 +1074,19 @@ function saveHighscore(playerName, survivalTime, finalScore) {
         }
     });
     
-    // Sort by score first, then by survival time (both highest first)
+    // Sort by difficulty first (schwer > mittel > leicht), then by score, then by survival time
     highscores.sort((a, b) => {
+        const diffA = getDifficultySortValue(a.difficulty);
+        const diffB = getDifficultySortValue(b.difficulty);
+        
+        if (diffB !== diffA) {
+            return diffB - diffA; // Higher difficulty first
+        }
+        
         if (b.score !== a.score) {
             return b.score - a.score; // Higher score first
         }
+        
         return b.survivalTime - a.survivalTime; // If score tied, longer time first
     });
     
@@ -1044,12 +1156,20 @@ async function submitToOnlineLeaderboard(scoreData) {
             submittedAt: new Date().toISOString()
         });
         
-        // Nach Score sortieren (höchster zuerst)
+        // Nach Schwierigkeit, dann Score sortieren (höchste Schwierigkeit und Score zuerst)
         currentLeaderboard.sort((a, b) => {
-            if (b.score !== a.score) {
-                return b.score - a.score;
+            const diffA = getDifficultySortValue(a.difficulty);
+            const diffB = getDifficultySortValue(b.difficulty);
+            
+            if (diffB !== diffA) {
+                return diffB - diffA; // Higher difficulty first
             }
-            return b.survivalTime - a.survivalTime;
+            
+            if (b.score !== a.score) {
+                return b.score - a.score; // Higher score first
+            }
+            
+            return b.survivalTime - a.survivalTime; // If score tied, longer time first
         });
         
         // Top 50 behalten
@@ -1084,38 +1204,30 @@ function formatTime(seconds) {
 
 function showHighscoreTable(currentScoreData = null) {
     const highscores = loadHighscores();
+    const stats = SecureStorage.getScoreStatistics(highscores);
     
     const tableHTML = `
         <div class="highscore-table">
             <h2>🏆 LOKALE HIGHSCORES</h2>
-            <ol class="highscore-list">
-                ${highscores.length > 0 
-                    ? highscores.map((score, index) => {
-                        const isCurrentScore = currentScoreData && 
-                            score.name === currentScoreData.name && 
-                            score.score === currentScoreData.score &&
-                            Math.abs(new Date(score.date).getTime() - new Date(currentScoreData.date).getTime()) < 5000;
-                            
-                        const difficultyBadge = score.difficulty ? 
-                            `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
-                            
-                        return `
-                            <li class="highscore-entry ${isCurrentScore ? 'current-score' : ''}">
-                                <div class="rank">#${index + 1}</div>
-                                <div class="player-info">
-                                    <div class="player-name">${score.name} ${difficultyBadge}</div>
-                                    <div class="score-details">
-                                        <span class="score">${score.score} Punkte</span>
-                                        <span class="time">${CONFIG.CONFIG_UTILS.formatTime(score.survivalTime)}</span>
-                                        <span class="words">${score.wordsDestroyed || 0}/${CONFIG.GAME_CONSTANTS.TOTAL_WORDS} Wörter</span>
-                                    </div>
-                                </div>
-                                <div class="date">${new Date(score.date).toLocaleDateString('de-DE')}</div>
-                            </li>
-                        `;
-                    }).join('')
-                    : '<li class="no-scores">Noch keine Highscores vorhanden</li>'
-                }
+            
+            <!-- Difficulty Filter Buttons for Full Table -->
+            <div class="difficulty-filter-buttons fullscreen">
+                <button class="filter-btn active" data-filter="alle" data-mode="fullscreen">
+                    🎯 ALLE (${stats.alle_count})
+                </button>
+                <button class="filter-btn" data-filter="leicht" data-mode="fullscreen">
+                    🟢 LEICHT (${stats.leicht_count})
+                </button>
+                <button class="filter-btn" data-filter="mittel" data-mode="fullscreen">
+                    🟡 MITTEL (${stats.mittel_count})
+                </button>
+                <button class="filter-btn" data-filter="schwer" data-mode="fullscreen">
+                    🔴 SCHWER (${stats.schwer_count})
+                </button>
+            </div>
+            
+            <ol class="highscore-list" id="fullscreen-filtered-scores">
+                ${renderFullscreenScores(highscores, 'alle', currentScoreData)}
             </ol>
             
             <div class="online-leaderboard-section">
@@ -1136,6 +1248,40 @@ function showHighscoreTable(currentScoreData = null) {
     `;
     
     return tableHTML;
+}
+
+function renderFullscreenScores(scores, difficulty = 'alle', currentScoreData = null) {
+    const filteredScores = SecureStorage.filterByDifficulty(scores, difficulty);
+    
+    if (filteredScores.length === 0) {
+        const difficultyText = difficulty === 'alle' ? '' : ` (${difficulty.toUpperCase()})`;
+        return `<li class="no-scores">Noch keine Scores${difficultyText} vorhanden</li>`;
+    }
+    
+    return filteredScores.map((score, index) => {
+        const isCurrentScore = currentScoreData && 
+            score.name === currentScoreData.name && 
+            score.score === currentScoreData.score &&
+            Math.abs(new Date(score.date).getTime() - new Date(currentScoreData.date).getTime()) < 5000;
+            
+        const difficultyBadge = score.difficulty ? 
+            `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
+            
+        return `
+            <li class="highscore-entry ${isCurrentScore ? 'current-score' : ''}">
+                <div class="rank">#${index + 1}</div>
+                <div class="player-info">
+                    <div class="player-name">${score.name} ${difficultyBadge}</div>
+                    <div class="score-details">
+                        <span class="score">${score.score} Punkte</span>
+                        <span class="time">${CONFIG.CONFIG_UTILS.formatTime(score.survivalTime)}</span>
+                        <span class="words">${score.wordsDestroyed || 0}/${CONFIG.GAME_CONSTANTS.TOTAL_WORDS} Wörter</span>
+                    </div>
+                </div>
+                <div class="date">${new Date(score.date).toLocaleDateString('de-DE')}</div>
+            </li>
+        `;
+    }).join('');
 }
 
 async function showOnlineLeaderboard() {
@@ -1249,6 +1395,9 @@ function attachLeaderboardEventListeners() {
             }
         });
     }
+    
+    // Attach filter event listeners for fullscreen leaderboard
+    attachFilterEventListeners('fullscreen');
 }
 
 function calculateScore() {
@@ -1700,6 +1849,9 @@ function showRestartButton() {
     // Save highscore with final score
     const currentScoreData = saveHighscore(window.currentPlayerName, survivalTime, currentScore);
     
+    // Store current score data globally for filter updates
+    window.currentGameOverScore = currentScoreData;
+    
     // Create game over overlay with highscore table
     const overlay = document.createElement('div');
     overlay.className = 'info-overlay';
@@ -1745,6 +1897,9 @@ function restartGame() {
     if (gameUI) {
         gameUI.remove();
     }
+    
+    // Clear current game over score data
+    window.currentGameOverScore = null;
     
     // Stop UI updates to prevent memory leaks
     stopUIUpdates();
@@ -1847,6 +2002,13 @@ class SpaceshipController {
         this.isInForcedAggressionMode = false;
         this.forcedAggressionDuration = 0;
         this.hasFiredShot = false; // Verfolgt ob bereits ein Schuss in diesem Angriff abgegeben wurde
+        
+        // Anti-Stuck-System
+        this.lastPositionX = this.x;
+        this.lastPositionY = this.y;
+        this.stuckCounter = 0;
+        this.lastMovementCheck = Date.now();
+        this.lastBoosterTime = 0; // Verhindert Booster-Spam
         
         // Instanz-spezifische Timer
         this.shootTimer = null;
@@ -1963,6 +2125,14 @@ class SpaceshipController {
     }
 
     showBooster() {
+        // Verhindere Booster-Spam (maximal alle 1 Sekunde pro Schiff)
+        const now = Date.now();
+        if (now - this.lastBoosterTime < 1000) {
+            console.log(`🔇 Booster skipped for spaceship ${this.isSecondHunter ? '2' : '1'} (individual cooldown)`);
+            return;
+        }
+        this.lastBoosterTime = now;
+        
         const booster = document.createElement('div');
         booster.className = 'booster-flame';
         
@@ -1973,12 +2143,16 @@ class SpaceshipController {
         
         this.spaceship.appendChild(booster);
         
-        // Play booster sound
+        // Play booster sound with limiting to prevent multiple sounds
         try {
-            // createBoosterSound(); // Uncomment if you have a booster sound function
-            // Ansonsten nur den neuen, leisen "Woosh"
-            createSoftWooshSound();
-
+            // Only play sound if enough time has passed since last boost sound
+            if (now - lastBoostSoundTime >= BOOST_SOUND_COOLDOWN) {
+                createSoftWooshSound();
+                lastBoostSoundTime = now;
+                console.log(`🔊 Boost sound played by spaceship ${this.isSecondHunter ? '2' : '1'}`);
+            } else {
+                console.log('🔇 Boost sound skipped (global cooldown active)');
+            }
         } catch (e) {
             console.log('Audio not available:', e);
         }
@@ -2157,13 +2331,15 @@ class SpaceshipController {
                             this.shootAtRandomWord();
                         }, 500);
                     }
-                }                } else {
-            // Target still in radar range but outside shooting range: continue targeting
-            // Re-schedule targeting attempt after a short delay
-            this.targetingTimer = setTimeout(() => {
-                this.executeShot();
-            }, 500);
-        }                }
+                }
+            } else {
+                // Target still in radar range but outside shooting range: continue targeting
+                // Re-schedule targeting attempt after a short delay
+                this.targetingTimer = setTimeout(() => {
+                    this.executeShot();
+                }, 500);
+            }
+        }
         
         // Update position
         this.x += this.vx;
@@ -2200,10 +2376,83 @@ class SpaceshipController {
         const rotationSpeed = this.isChasing ? 0.2 : 0.15;
         this.rotation += rotationDiff * rotationSpeed;
         
+        // Anti-Stuck-System: Prüfe alle 2 Sekunden auf Bewegung
+        const now = Date.now();
+        if (now - this.lastMovementCheck > 2000) { // 2 Sekunden
+            const distanceMoved = Math.sqrt(
+                Math.pow(this.x - this.lastPositionX, 2) + 
+                Math.pow(this.y - this.lastPositionY, 2)
+            );
+            
+            if (distanceMoved < 10) { // Weniger als 10 Pixel in 2 Sekunden = stuck
+                this.stuckCounter++;
+                console.log(`🚨 Spaceship ${this.isSecondHunter ? '2' : '1'} appears stuck! Count: ${this.stuckCounter}, Distance: ${distanceMoved.toFixed(1)}px`);
+                
+                if (this.stuckCounter >= 2) { // Nach 4 Sekunden ohne Bewegung
+                    console.log(`🔧 Unsticking spaceship ${this.isSecondHunter ? '2' : '1'}!`);
+                    this.unstickSpaceship();
+                    this.stuckCounter = 0;
+                }
+            } else {
+                this.stuckCounter = 0; // Reset counter bei Bewegung
+            }
+            
+            // Update Tracking-Variablen
+            this.lastPositionX = this.x;
+            this.lastPositionY = this.y;
+            this.lastMovementCheck = now;
+        }
+        
         // Update spaceship position and rotation
         this.spaceship.style.left = this.x + 'px';
         this.spaceship.style.top = this.y + 'px';
         this.spaceship.style.transform = `rotate(${this.rotation}deg)`;
+    }
+    
+    unstickSpaceship() {
+        console.log(`🔧 Applying emergency unstick to spaceship ${this.isSecondHunter ? '2' : '1'}`);
+        
+        // Clear all timers und states, die zu Deadlocks führen könnten
+        clearTimeout(this.targetingTimer);
+        clearTimeout(this.radarInterval);
+        this.targetingTimer = null;
+        this.radarInterval = null;
+        
+        // Reset targeting state
+        if (this.targetingWord) {
+            this.targetingWord.element.classList.remove('targeted');
+            this.targetingWord = null;
+        }
+        
+        // Clear radar ping
+        if (this.radarPing && this.radarPing.parentNode) {
+            this.radarPing.remove();
+            this.radarPing = null;
+        }
+        
+        // Reset chase state
+        this.isChasing = false;
+        this.chaseTarget = null;
+        
+        // Reset aggression mode
+        this.isInForcedAggressionMode = false;
+        this.aggressionModeTimer = 0;
+        this.forcedAggressionDuration = 0;
+        
+        // Force new random movement direction with higher speed
+        this.targetVx = (Math.random() - 0.5) * 4; // Doppelte Geschwindigkeit
+        this.targetVy = (Math.random() - 0.5) * 4;
+        this.vx = this.targetVx * 0.5; // Sofort etwas Geschwindigkeit geben
+        this.vy = this.targetVy * 0.5;
+        
+        // Reset direction change timer to trigger new direction soon
+        this.changeDirectionTimer = 0;
+        
+        // Restart shooting timer
+        clearTimeout(this.shootTimer);
+        this.startShootingTimer();
+        
+        console.log(`✅ Spaceship ${this.isSecondHunter ? '2' : '1'} unstuck procedure completed`);
     }
     
     startShootingTimer() {
