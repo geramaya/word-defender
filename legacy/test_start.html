@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Start Screen</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Word Defender - Start Screen Test</h1>
+    <p>Teste das Start-Overlay und die Buttons:</p>
+    
+    <button class="test-button" onclick="showTestOverlay()">Start Overlay anzeigen</button>
+    <button class="test-button" onclick="testConfig()">Config testen</button>
+    
+    <div id="test-output"></div>
+
+    <script type="module">
+        import CONFIG from './game_config.js';
+        
+        // Macht CONFIG global verfügbar für andere Funktionen
+        window.CONFIG = CONFIG;
+        
+        window.testConfig = function() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = `
+                <h2>Config Test:</h2>
+                <p>Total Words: ${CONFIG.GAME_CONSTANTS.TOTAL_WORDS}</p>
+                <p>Default Difficulty: ${CONFIG.GAME_CONSTANTS.DEFAULT_DIFFICULTY}</p>
+                <p>Shield Cooldown: ${CONFIG.SHIELD_CONFIG.BASE_SHIELD_COOLDOWN}ms</p>
+            `;
+        };
+        
+        window.showTestOverlay = function() {
+            const overlay = document.createElement('div');
+            overlay.className = 'info-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+            
+            overlay.innerHTML = `
+                <div class="info-box" style="
+                    background: #1a1a2e;
+                    padding: 30px;
+                    border-radius: 10px;
+                    border: 2px solid #4CAF50;
+                    max-width: 600px;
+                    text-align: center;
+                ">
+                    <h1>WORD DEFENDER TEST</h1>
+                    <p>Das ist ein Test des Start-Overlays.</p>
+                    <div style="margin: 20px 0;">
+                        <button style="
+                            background: #4CAF50;
+                            color: white;
+                            padding: 10px 20px;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            margin: 10px;
+                        " onclick="closeTestOverlay()">OVERLAY SCHLIEßEN</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+        };
+        
+        window.closeTestOverlay = function() {
+            const overlay = document.querySelector('.info-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        };
+    </script>
+</body>
+</html>

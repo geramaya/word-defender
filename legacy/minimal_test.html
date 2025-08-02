@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Defender - Minimal Test</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Direkt das Overlay ohne JavaScript-Import testen -->
+        <div class="info-overlay" style="display: block;">
+            <div class="info-box">
+                <h1>WORD DEFENDER<br><span style="font-size: 0.6em; color: #ff4444;">vs. THE PSYCHO WORD HUNTER</span></h1>
+                <p>Ein Raumschiff jagt die schwebenden Wörter!</p>
+                <p><span class="highlight">Erste Angriffe beginnen nach 20 Sekunden</span> - dann dynamische Intervalle.</p>
+                
+                <div class="start-screen-navigation">
+                    <div class="nav-buttons">
+                        <button class="nav-btn active" data-tab="game-setup">🎮 SPIEL STARTEN</button>
+                        <button class="nav-btn" data-tab="leaderboard">🏆 HIGHSCORES</button>
+                    </div>
+                </div>
+                
+                <div id="game-setup" class="tab-content active">
+                    <div class="difficulty-section">
+                        <h3>Schwierigkeitsgrad wählen:</h3>
+                        <div class="difficulty-buttons">
+                            <button class="difficulty-btn" data-difficulty="leicht">
+                                🟢 LEICHT
+                                <small>Entspannt spielen</small>
+                            </button>
+                            <button class="difficulty-btn selected" data-difficulty="mittel">
+                                🟡 MITTEL
+                                <small>Ausgewogen</small>
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="schwer">
+                                🔴 SCHWER
+                                <small>Hardcore-Modus</small>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <input type="text" class="player-name-input" id="player-name" placeholder="Dein Name..." maxlength="20">
+                    <div class="error-message" id="name-error">Bitte gib einen Namen ein!</div>
+                    <button class="start-button">START GAME (TEST)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

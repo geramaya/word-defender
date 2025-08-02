@@ -1022,6 +1022,337 @@
             text-align: right;
             flex-shrink: 0;
         }
+
+        /* Enhanced Highscore Styling for Online Leaderboard */
+        .highscore-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(68, 136, 255, 0.3);
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            gap: 20px;
+        }
+
+        .highscore-entry.current-score {
+            background: rgba(68, 136, 255, 0.2);
+            border-color: #4488ff;
+            box-shadow: 0 0 15px rgba(68, 136, 255, 0.3);
+            animation: highlightCurrentScore 2s ease-in-out infinite;
+        }
+
+        .highscore-entry.online-entry {
+            border-color: rgba(102, 255, 136, 0.3);
+            background: rgba(102, 255, 136, 0.05);
+        }
+
+        .rank {
+            font-weight: 700;
+            color: #ffaa44;
+            min-width: 40px;
+            flex-shrink: 0;
+            font-size: 18px;
+        }
+
+        .player-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .player-name {
+            font-weight: 600;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .score-details {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+        }
+
+        .score {
+            color: #44ff88;
+            font-weight: 600;
+        }
+
+        .time {
+            color: #66aaff;
+            font-weight: 600;
+        }
+
+        .words {
+            color: #ffaa44;
+            font-weight: 600;
+        }
+
+        .date {
+            color: #aaaaaa;
+            font-size: 12px;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .no-scores {
+            text-align: center;
+            color: #aaaaaa;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        /* Online Leaderboard Section */
+        .online-leaderboard-section {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px solid rgba(68, 136, 255, 0.3);
+            text-align: center;
+        }
+
+        .online-button {
+            background: linear-gradient(45deg, #4488ff, #66aaff);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(68, 136, 255, 0.3);
+        }
+
+        .online-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(68, 136, 255, 0.4);
+        }
+
+        .submit-score-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(68, 136, 255, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(68, 136, 255, 0.3);
+        }
+
+        .submit-prompt {
+            color: #66aaff;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .submit-button {
+            background: linear-gradient(45deg, #44ff88, #66ffaa);
+            color: #003311;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(68, 255, 136, 0.3);
+        }
+
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(68, 255, 136, 0.4);
+        }
+
+        .submit-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .privacy-note {
+            color: #aaaaaa;
+            font-size: 12px;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.1);
+            color: #66aaff;
+            border: 1px solid rgba(68, 136, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .back-button:hover {
+            background: rgba(68, 136, 255, 0.2);
+            border-color: #4488ff;
+        }
+
+        .loading {
+            color: #66aaff;
+            font-size: 18px;
+            text-align: center;
+            padding: 40px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes highlightCurrentScore {
+            0%, 100% { box-shadow: 0 0 15px rgba(68, 136, 255, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(68, 136, 255, 0.6); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Start Screen Navigation */
+        .start-screen-navigation {
+            margin-bottom: 30px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #66aaff;
+            border: 2px solid rgba(68, 136, 255, 0.3);
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(68, 136, 255, 0.2);
+            border-color: #4488ff;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(45deg, #4488ff, #66aaff);
+            color: white;
+            border-color: #4488ff;
+            box-shadow: 0 4px 15px rgba(68, 136, 255, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Start Screen Leaderboard */
+        .start-screen-leaderboard {
+            background: rgba(26, 26, 26, 0.8);
+            border: 2px solid rgba(68, 136, 255, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .start-screen-leaderboard h2 {
+            color: #66aaff;
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            background: linear-gradient(45deg, #4488ff, #66aaff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .highscore-list.compact {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .highscore-entry.compact {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .highscore-entry.compact .rank {
+            font-size: 16px;
+            min-width: 35px;
+        }
+
+        .highscore-entry.compact .player-name {
+            font-size: 14px;
+        }
+
+        .highscore-entry.compact .score-details {
+            font-size: 12px;
+            gap: 10px;
+        }
+
+        .online-section-compact {
+            margin-top: 15px;
+            text-align: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(68, 136, 255, 0.3);
+        }
+
+        .online-button.compact {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 20px;
+        }
+
+        .start-button.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #66aaff;
+            border: 2px solid rgba(68, 136, 255, 0.3);
+        }
+
+        .start-button.secondary:hover {
+            background: rgba(68, 136, 255, 0.2);
+            border-color: #4488ff;
+        }
+
+        /* Responsive Design for Start Screen */
+        @media (max-width: 768px) {
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .nav-btn {
+                max-width: 250px;
+                width: 100%;
+            }
+
+            .highscore-entry.compact {
+                flex-direction: column;
+                gap: 5px;
+                text-align: center;
+            }
+
+            .highscore-entry.compact .rank {
+                min-width: auto;
+            }
+        }
         /* Pulsar Endgame Mechanics */
         .pulsar {
             position: absolute;
@@ -1793,30 +2124,49 @@
                     <p>Klicke auf Wörter um sie zu bewegen und vor dem Schiff zu retten!</p>
                     <p>Überlebe so lange wie möglich! 🚀</p>
                     
-                    <div class="difficulty-section">
-                        <h3>Schwierigkeitsgrad wählen:</h3>
-                        <div class="difficulty-buttons">
-                            <button class="difficulty-btn" data-difficulty="leicht">
-                                🟢 LEICHT
-                                <small>Entspannt spielen</small>
-                            </button>
-                            <button class="difficulty-btn selected" data-difficulty="mittel">
-                                🟡 MITTEL
-                                <small>Ausgewogen</small>
-                            </button>
-                            <button class="difficulty-btn" data-difficulty="schwer">
-                                🔴 SCHWER
-                                <small>Hardcore-Modus</small>
-                            </button>
+                    <div class="start-screen-navigation">
+                        <div class="nav-buttons">
+                            <button class="nav-btn active" data-tab="game-setup">🎮 SPIEL STARTEN</button>
+                            <button class="nav-btn" data-tab="leaderboard">🏆 HIGHSCORES</button>
                         </div>
                     </div>
                     
-                    <input type="text" class="player-name-input" id="player-name" placeholder="Dein Name..." maxlength="20">
-                    <div class="error-message" id="name-error">Bitte gib einen Namen ein!</div>
-                    <button class="start-button" onclick="validateAndStartGame()">START GAME</button>
+                    <div id="game-setup" class="tab-content active">
+                        <div class="difficulty-section">
+                            <h3>Schwierigkeitsgrad wählen:</h3>
+                            <div class="difficulty-buttons">
+                                <button class="difficulty-btn" data-difficulty="leicht">
+                                    🟢 LEICHT
+                                    <small>Entspannt spielen</small>
+                                </button>
+                                <button class="difficulty-btn selected" data-difficulty="mittel">
+                                    🟡 MITTEL
+                                    <small>Ausgewogen</small>
+                                </button>
+                                <button class="difficulty-btn" data-difficulty="schwer">
+                                    🔴 SCHWER
+                                    <small>Hardcore-Modus</small>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <input type="text" class="player-name-input" id="player-name" placeholder="Dein Name..." maxlength="20">
+                        <div class="error-message" id="name-error">Bitte gib einen Namen ein!</div>
+                        <button class="start-button" onclick="validateAndStartGame()">START GAME</button>
+                    </div>
+                    
+                    <div id="leaderboard" class="tab-content">
+                        <div id="start-screen-highscores">
+                            ${showStartScreenHighscores()}
+                        </div>
+                        <button class="start-button secondary" onclick="switchToGameSetup()">⬅ ZURÜCK ZUM SPIEL</button>
+                    </div>
                 </div>
             `;
             document.body.appendChild(overlay);
+            
+            // Set up tab navigation
+            setupStartScreenNavigation();
             
             // Load saved difficulty and player name
             const savedDifficulty = localStorage.getItem('wordDefenderDifficulty') || 'mittel';
@@ -1842,8 +2192,11 @@
                 document.getElementById('player-name').value = lastPlayer;
             }
             
-            // Focus on input
-            document.getElementById('player-name').focus();
+            // Focus on input when on game setup tab
+            const gameSetupTab = document.getElementById('game-setup');
+            if (gameSetupTab && gameSetupTab.classList.contains('active')) {
+                document.getElementById('player-name').focus();
+            }
             
             // Allow Enter key to start
             document.getElementById('player-name').addEventListener('keypress', function(e) {
@@ -1851,6 +2204,146 @@
                     validateAndStartGame();
                 }
             });
+        }
+        
+        function setupStartScreenNavigation() {
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            navButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetTab = btn.dataset.tab;
+                    
+                    // Remove active class from all buttons and tabs
+                    navButtons.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(tab => tab.classList.remove('active'));
+                    
+                    // Add active class to clicked button and corresponding tab
+                    btn.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                    
+                    // If switching to leaderboard, refresh it
+                    if (targetTab === 'leaderboard') {
+                        refreshStartScreenLeaderboard();
+                    }
+                    
+                    // If switching to game setup, focus on name input
+                    if (targetTab === 'game-setup') {
+                        setTimeout(() => {
+                            document.getElementById('player-name').focus();
+                        }, 100);
+                    }
+                });
+            });
+        }
+        
+        function showStartScreenHighscores() {
+            const highscores = loadHighscores();
+            
+            return `
+                <div class="start-screen-leaderboard">
+                    <h2>🏆 LOKALE HIGHSCORES</h2>
+                    <ol class="highscore-list compact">
+                        ${highscores.length > 0 
+                            ? highscores.slice(0, 8).map((score, index) => {
+                                const difficultyBadge = score.difficulty ? 
+                                    `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
+                                    
+                                return `
+                                    <li class="highscore-entry compact">
+                                        <div class="rank">#${index + 1}</div>
+                                        <div class="player-info">
+                                            <div class="player-name">${score.name} ${difficultyBadge}</div>
+                                            <div class="score-details">
+                                                <span class="score">${score.score} Punkte</span>
+                                                <span class="time">${formatTime(score.survivalTime)}</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('')
+                            : '<li class="no-scores">Noch keine Highscores vorhanden<br><small>Spiele dein erstes Spiel!</small></li>'
+                        }
+                    </ol>
+                    
+                    <div class="online-section-compact">
+                        <button id="show-online-start" class="online-button compact">
+                            🌐 ONLINE HIGHSCORES
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function refreshStartScreenLeaderboard() {
+            const container = document.getElementById('start-screen-highscores');
+            if (container) {
+                container.innerHTML = showStartScreenHighscores();
+                
+                // Attach online leaderboard button
+                const onlineBtn = document.getElementById('show-online-start');
+                if (onlineBtn) {
+                    onlineBtn.addEventListener('click', showStartScreenOnlineLeaderboard);
+                }
+            }
+        }
+        
+        async function showStartScreenOnlineLeaderboard() {
+            const container = document.getElementById('start-screen-highscores');
+            if (!container) return;
+            
+            // Show loading state
+            container.innerHTML = `
+                <div class="start-screen-leaderboard">
+                    <h2>🌐 ONLINE LEADERBOARD</h2>
+                    <div class="loading">Lade Online Highscores...</div>
+                    <button class="back-button" onclick="refreshStartScreenLeaderboard()">⬅ ZURÜCK ZU LOKALEN SCORES</button>
+                </div>
+            `;
+            
+            // Load online data
+            const onlineScores = await loadOnlineLeaderboard();
+            
+            container.innerHTML = `
+                <div class="start-screen-leaderboard">
+                    <h2>🌐 ONLINE LEADERBOARD</h2>
+                    <ol class="highscore-list compact online">
+                        ${onlineScores.length > 0 
+                            ? onlineScores.slice(0, 10).map((score, index) => {
+                                const difficultyBadge = score.difficulty ? 
+                                    `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
+                                    
+                                return `
+                                    <li class="highscore-entry compact online-entry">
+                                        <div class="rank">#${index + 1}</div>
+                                        <div class="player-info">
+                                            <div class="player-name">${score.name} ${difficultyBadge}</div>
+                                            <div class="score-details">
+                                                <span class="score">${score.score} Punkte</span>
+                                                <span class="time">${formatTime(score.survivalTime)}</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('')
+                            : '<li class="no-scores">Noch keine Online-Scores vorhanden</li>'
+                        }
+                    </ol>
+                    <button class="back-button" onclick="refreshStartScreenLeaderboard()">⬅ ZURÜCK ZU LOKALEN SCORES</button>
+                </div>
+            `;
+        }
+        
+        function switchToGameSetup() {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            
+            document.querySelector('.nav-btn[data-tab="game-setup"]').classList.add('active');
+            document.getElementById('game-setup').classList.add('active');
+            
+            setTimeout(() => {
+                document.getElementById('player-name').focus();
+            }, 100);
         }
         
         function validateAndStartGame() {
@@ -1876,6 +2369,10 @@
             startGame();
         }
         
+        // Online Leaderboard API URL (kann angepasst werden)
+        const LEADERBOARD_API = 'https://api.jsonbin.io/v3/b/66b1234567890abcdef12345'; // Beispiel-URL
+        const API_KEY = '$2a$10$YOUR_API_KEY_HERE'; // JsonBin.io API Key
+        
         // Highscore localStorage functions
         function loadHighscores() {
             const saved = localStorage.getItem('wordDefenderHighscores');
@@ -1889,7 +2386,8 @@
                 survivalTime: survivalTime,
                 score: finalScore || 0, // Ensure score is always a number
                 date: new Date().toISOString(),
-                wordsDestroyed: 12 - floatingTexts.filter(word => !word.isDestroyed).length
+                wordsDestroyed: 12 - floatingTexts.filter(word => !word.isDestroyed).length,
+                difficulty: localStorage.getItem('wordDefenderDifficulty') || 'mittel'
             };
             
             highscores.push(newScore);
@@ -1917,6 +2415,76 @@
             return newScore;
         }
         
+        // Online Leaderboard Functions
+        async function loadOnlineLeaderboard() {
+            try {
+                const response = await fetch(LEADERBOARD_API, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': API_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.record || [];
+                } else {
+                    console.warn('Online Leaderboard konnte nicht geladen werden');
+                    return [];
+                }
+            } catch (error) {
+                console.warn('Fehler beim Laden des Online Leaderboards:', error);
+                return [];
+            }
+        }
+        
+        async function submitToOnlineLeaderboard(scoreData) {
+            try {
+                // Erst aktuelle Daten laden
+                const currentLeaderboard = await loadOnlineLeaderboard();
+                
+                // Neuen Score hinzufügen
+                currentLeaderboard.push({
+                    ...scoreData,
+                    id: Date.now() + Math.random(), // Eindeutige ID
+                    submittedAt: new Date().toISOString()
+                });
+                
+                // Nach Score sortieren (höchster zuerst)
+                currentLeaderboard.sort((a, b) => {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    return b.survivalTime - a.survivalTime;
+                });
+                
+                // Top 50 behalten
+                const topScores = currentLeaderboard.slice(0, 50);
+                
+                // Zurück zum Server senden
+                const response = await fetch(LEADERBOARD_API, {
+                    method: 'PUT',
+                    headers: {
+                        'X-Master-Key': API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(topScores)
+                });
+                
+                if (response.ok) {
+                    console.log('Score erfolgreich zum Online Leaderboard hinzugefügt!');
+                    return true;
+                } else {
+                    console.warn('Fehler beim Senden zum Online Leaderboard');
+                    return false;
+                }
+            } catch (error) {
+                console.warn('Fehler beim Senden zum Online Leaderboard:', error);
+                return false;
+            }
+        }
+        
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const remainingSeconds = seconds % 60;
@@ -1928,24 +2496,168 @@
             
             const tableHTML = `
                 <div class="highscore-table">
-                    <h2>🏆 HIGHSCORES</h2>
+                    <h2>🏆 LOKALE HIGHSCORES</h2>
                     <ol class="highscore-list">
                         ${highscores.length > 0 
-                            ? highscores.map((score, index) => `
-                                <li class="highscore-entry ${currentScoreData && score === currentScoreData ? 'current' : ''}">
-                                    <span class="highscore-rank">#${index + 1}</span>
-                                    <span class="highscore-name">${score.name}</span>
-                                    <span class="highscore-score">${score.score || 0}pts</span>
-                                    <span class="highscore-time">${formatTime(score.survivalTime)}</span>
-                                </li>
-                            `).join('')
-                            : '<li class="highscore-entry"><span style="text-align: center; width: 100%;">Noch keine Highscores</span></li>'
+                            ? highscores.map((score, index) => {
+                                const isCurrentScore = currentScoreData && 
+                                    score.name === currentScoreData.name && 
+                                    score.score === currentScoreData.score &&
+                                    Math.abs(new Date(score.date).getTime() - new Date(currentScoreData.date).getTime()) < 5000;
+                                    
+                                const difficultyBadge = score.difficulty ? 
+                                    `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
+                                    
+                                return `
+                                    <li class="highscore-entry ${isCurrentScore ? 'current-score' : ''}">
+                                        <div class="rank">#${index + 1}</div>
+                                        <div class="player-info">
+                                            <div class="player-name">${score.name} ${difficultyBadge}</div>
+                                            <div class="score-details">
+                                                <span class="score">${score.score} Punkte</span>
+                                                <span class="time">${formatTime(score.survivalTime)}</span>
+                                                <span class="words">${score.wordsDestroyed || 0}/12 Wörter</span>
+                                            </div>
+                                        </div>
+                                        <div class="date">${new Date(score.date).toLocaleDateString('de-DE')}</div>
+                                    </li>
+                                `;
+                            }).join('')
+                            : '<li class="no-scores">Noch keine Highscores vorhanden</li>'
                         }
                     </ol>
+                    
+                    <div class="online-leaderboard-section">
+                        <button id="show-online-leaderboard" class="online-button">
+                            🌐 ONLINE LEADERBOARD ANZEIGEN
+                        </button>
+                        ${currentScoreData ? `
+                            <div class="submit-score-section">
+                                <p class="submit-prompt">Möchtest du deinen Score online teilen?</p>
+                                <button id="submit-score-online" class="submit-button">
+                                    📤 SCORE ONLINE VERÖFFENTLICHEN
+                                </button>
+                                <p class="privacy-note">Nur dein Name, Score und Spielzeit werden geteilt.</p>
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
             `;
             
             return tableHTML;
+        }
+        
+        async function showOnlineLeaderboard() {
+            // Show loading state
+            const loadingHTML = `
+                <div class="online-leaderboard">
+                    <h2>🌐 ONLINE LEADERBOARD</h2>
+                    <div class="loading">Lade Online Highscores...</div>
+                    <button class="back-button" onclick="showLocalLeaderboard()">⬅ ZURÜCK ZU LOKALEN SCORES</button>
+                </div>
+            `;
+            
+            const highscoreContainer = document.querySelector('.highscore-table');
+            if (highscoreContainer) {
+                highscoreContainer.innerHTML = loadingHTML;
+            }
+            
+            // Load online data
+            const onlineScores = await loadOnlineLeaderboard();
+            
+            const onlineHTML = `
+                <div class="online-leaderboard">
+                    <h2>🌐 ONLINE LEADERBOARD</h2>
+                    <ol class="highscore-list online">
+                        ${onlineScores.length > 0 
+                            ? onlineScores.slice(0, 20).map((score, index) => {
+                                const difficultyBadge = score.difficulty ? 
+                                    `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
+                                    
+                                return `
+                                    <li class="highscore-entry online-entry">
+                                        <div class="rank">#${index + 1}</div>
+                                        <div class="player-info">
+                                            <div class="player-name">${score.name} ${difficultyBadge}</div>
+                                            <div class="score-details">
+                                                <span class="score">${score.score} Punkte</span>
+                                                <span class="time">${formatTime(score.survivalTime)}</span>
+                                                <span class="words">${score.wordsDestroyed || 0}/12 Wörter</span>
+                                            </div>
+                                        </div>
+                                        <div class="date">${new Date(score.submittedAt || score.date).toLocaleDateString('de-DE')}</div>
+                                    </li>
+                                `;
+                            }).join('')
+                            : '<li class="no-scores">Noch keine Online-Scores vorhanden</li>'
+                        }
+                    </ol>
+                    <button class="back-button" onclick="showLocalLeaderboard()">⬅ ZURÜCK ZU LOKALEN SCORES</button>
+                </div>
+            `;
+            
+            if (highscoreContainer) {
+                highscoreContainer.innerHTML = onlineHTML;
+            }
+        }
+        
+        function showLocalLeaderboard() {
+            const highscoreContainer = document.querySelector('.highscore-table');
+            if (highscoreContainer) {
+                const newContent = showHighscoreTable();
+                highscoreContainer.outerHTML = newContent;
+                attachLeaderboardEventListeners();
+            }
+        }
+        
+        function attachLeaderboardEventListeners() {
+            const showOnlineBtn = document.getElementById('show-online-leaderboard');
+            const submitOnlineBtn = document.getElementById('submit-score-online');
+            
+            if (showOnlineBtn) {
+                showOnlineBtn.addEventListener('click', showOnlineLeaderboard);
+            }
+            
+            if (submitOnlineBtn) {
+                submitOnlineBtn.addEventListener('click', async () => {
+                    const button = submitOnlineBtn;
+                    const originalText = button.textContent;
+                    
+                    button.textContent = 'Sende...';
+                    button.disabled = true;
+                    
+                    // Get the most recent score (should be the current one)
+                    const highscores = loadHighscores();
+                    const latestScore = highscores[0];
+                    
+                    if (latestScore) {
+                        const success = await submitToOnlineLeaderboard(latestScore);
+                        
+                        if (success) {
+                            button.textContent = '✅ ERFOLGREICH GESENDET!';
+                            button.style.background = '#28a745';
+                            
+                            // Hide submit section after successful submission
+                            setTimeout(() => {
+                                const submitSection = button.closest('.submit-score-section');
+                                if (submitSection) {
+                                    submitSection.style.opacity = '0.5';
+                                    submitSection.innerHTML = '<p style="color: #28a745;">✅ Score wurde online veröffentlicht!</p>';
+                                }
+                            }, 2000);
+                        } else {
+                            button.textContent = '❌ FEHLER BEIM SENDEN';
+                            button.style.background = '#dc3545';
+                            
+                            setTimeout(() => {
+                                button.textContent = originalText;
+                                button.style.background = '';
+                                button.disabled = false;
+                            }, 3000);
+                        }
+                    }
+                });
+            }
         }
         
         function calculateScore() {
@@ -2427,6 +3139,11 @@
                 </div>
             `;
             document.body.appendChild(overlay);
+            
+            // Attach event listeners for online leaderboard functionality
+            setTimeout(() => {
+                attachLeaderboardEventListeners();
+            }, 100);
         }
         
         function restartGame() {

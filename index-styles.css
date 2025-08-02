@@ -1,0 +1,158 @@
+/* Zusätzliche CSS-Stile für modulare Index-Seite */
+/* Diese Datei ergänzt die bestehenden Stile in index.html */
+
+/* Fade-in Animation für Scroll-basierte Effekte */
+.feature, .game-preview, .game-stats {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.feature.fade-in, .game-preview.fade-in, .game-stats.fade-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Keyboard Navigation Styles */
+.keyboard-navigation *:focus {
+    outline: 3px solid #4488ff !important;
+    outline-offset: 2px;
+}
+
+.keyboard-focus {
+    box-shadow: 0 0 0 3px rgba(68, 136, 255, 0.5) !important;
+}
+
+/* Touch Feedback */
+.touched {
+    transform: scale(0.98) !important;
+    transition: transform 0.1s ease !important;
+}
+
+/* Ripple Effect für Buttons */
+.play-button {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0);
+    animation: rippleEffect 0.6s linear;
+    pointer-events: none;
+}
+
+@keyframes rippleEffect {
+    to {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+/* Reduced Motion Support */
+.reduced-motion * {
+    animation-duration: 0.01s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01s !important;
+}
+
+.reduced-motion .star {
+    animation: none !important;
+}
+
+.reduced-motion .particle {
+    display: none !important;
+}
+
+/* High Contrast Mode */
+.high-contrast {
+    filter: contrast(150%) brightness(120%);
+}
+
+.high-contrast .title {
+    -webkit-text-fill-color: #ffffff !important;
+    color: #ffffff !important;
+}
+
+.high-contrast .feature {
+    border-color: #ffffff !important;
+    background: #000000 !important;
+}
+
+/* Loading States */
+.preview-image, .demo-spaceship {
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.preview-image.loaded, .demo-spaceship.loaded {
+    opacity: 1;
+}
+
+/* Mobile Optimierungen */
+.mobile .star {
+    animation-duration: 1.5s !important;
+}
+
+.mobile .particle {
+    animation-duration: 4s !important;
+}
+
+/* Tablet Optimierungen */
+.tablet .features {
+    grid-template-columns: repeat(2, 1fr) !important;
+}
+
+/* Performance Optimierungen */
+.star, .particle {
+    will-change: transform, opacity;
+}
+
+.feature {
+    will-change: transform;
+}
+
+/* FPS Debug Display (nur wenn aktiviert) */
+#fps-display {
+    font-size: 12px;
+    z-index: 10000;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* Responsive Verbesserungen */
+@media (max-width: 480px) {
+    .demo-word {
+        font-size: 16px !important;
+        margin: 0 8px !important;
+        padding: 8px 15px !important;
+    }
+    
+    .demo-spaceship {
+        width: 40px !important;
+        height: 40px !important;
+    }
+}
+
+/* Dark Mode Support (falls Browser das unterstützt) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text-color: #ffffff;
+        --background-color: #0a0a0a;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .stars, .particle, .background {
+        display: none !important;
+    }
+    
+    .play-button {
+        background: #4488ff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

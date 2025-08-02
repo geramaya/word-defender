@@ -1,0 +1,412 @@
+// Word Defender - Main Game Script
+// Game Constants and Variables
+
+const PHI = 1.618033988749;
+const UI_BAR_HEIGHT = 60; // Muss mit der CSS-Höhe von .game-ui übereinstimmen
+let containerWidth = window.innerWidth;
+let containerHeight = window.innerHeight;
+
+let wordsData = [];
+let floatingTexts = [];
+
+let spaceshipController;
+let secondSpaceshipController = null;
+let restartButton = null;
+let gameStarted = false;
+let gameStartTime = 0;
+
+// Game state variables with pause functionality
+let isPaused = false;
+let pauseStartTime = 0;
+
+// Global array for active homing projectiles
+let activeProjectiles = [];
+
+// Shield system
+let shieldCount = 3;
+let maxShields = 3;
+let shieldCooldown = 60000; // 60 seconds
+let lastShieldTime = 0;
+let protectedWords = new Set();
+
+// Beacon mine system
+let spaceBeacons = [];
+let maxBeacons = 3;
+let beaconDeploymentCounter = 0; // Track defenses for beacon deployment
+let nextBeaconAt = 4; // First beacon at 4th defense, then every 2nd
+
+// Floating mine system
+let floatingMines = [];
+let mineSpawnTimer = null;
+
+// Pulsar endgame system
+let pulsarElement = null;
+let pulsarPhase = 0; // 0 = inactive, 1 = phase1 (≤4 words), 2 = phase2 (≤2 words)
+let pulsarTimer = 0;
+let pulsarCycleTime = 1000; // 1 second for phase 1, 0.5 second for phase 2
+let pulsarCycleCount = 0;
+let pulsarActive = false; // Whether currently pulling words
+
+// Variablen für das Autoschild-System
+let autoShieldCount = 0;
+const MAX_AUTO_SHIELDS = 2;
+
+let mineSpawnInterval = 30000; // 30 seconds
+let mineLifespan = 10000; // 10 seconds
+
+        // Difficulty system
+        let currentDifficulty = 'mittel'; // default
+        
+        // Scoring system
+        let currentScore = 0;
+        let consecutiveSuccessfulDefenses = 0;
+        let attackInterval = 10000; // Start at 10 seconds
+        let hasFirstAttackHappened = false;
+        let defendedWordsCounter = 0;
+        
+        // Sound system
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function createBoosterSound() {
+            // Create multiple oscillators for complex jet afterburner sound
+            const osc1 = audioContext.createOscillator();
+            const osc2 = audioContext.createOscillator();
+            const osc3 = audioContext.createOscillator(); // Added high-pitched scream
+            const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.1, audioContext.sampleRate);
+            const noiseSource = audioContext.createBufferSource();
+            
+            // Create noise for turbulent jet sound
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < noiseBuffer.length; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+            noiseSource.buffer = noiseBuffer;
+            noiseSource.loop = true;
+            
+            const gain1 = audioContext.createGain();
+            const gain2 = audioContext.createGain();
+            const gain3 = audioContext.createGain();
+            const noiseGain = audioContext.createGain();
+            const masterGain = audioContext.createGain();
+            
+            // Connect everything
+            osc1.connect(gain1);
+            osc2.connect(gain2);
+            osc3.connect(gain3);
+            noiseSource.connect(noiseGain);
+            gain1.connect(masterGain);
+            gain2.connect(masterGain);
+            gain3.connect(masterGain);
+            noiseGain.connect(masterGain);
+            masterGain.connect(audioContext.destination);
+            
+            // Jet afterburner: explosive start, then fading rumble
+            osc1.type = 'sawtooth';
+            osc1.frequency.setValueAtTime(120, audioContext.currentTime);
+            osc1.frequency.exponentialRampToValueAtTime(80, audioContext.currentTime + 0.05);
+            osc1.frequency.exponentialRampToValueAtTime(45, audioContext.currentTime + 1.0);
+            
+            osc2.type = 'square';
+            osc2.frequency.setValueAtTime(200, audioContext.currentTime);
+            osc2.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.8);
+            
+            // High-pitched scream for brightness
+            osc3.type = 'square';
+            osc3.frequency.setValueAtTime(1200, audioContext.currentTime);
+            osc3.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.03);
+            osc3.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.15);
+            
+            // Sharp blast at start, then long fade
+            gain1.gain.setValueAtTime(0.6, audioContext.currentTime);
+            gain1.gain.exponentialRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+            gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.2);
+            
+            gain2.gain.setValueAtTime(0.4, audioContext.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.1, audioContext.currentTime + 0.1);
+            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.0);
+            
+            // Bright scream - short but piercing
+            gain3.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gain3.gain.exponentialRampToValueAtTime(0.2, audioContext.currentTime + 0.03);
+            gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            // Noise for turbulent jet texture
+            noiseGain.gain.setValueAtTime(0.2, audioContext.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.05, audioContext.currentTime + 0.1);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8);
+            
+            masterGain.gain.setValueAtTime(0.6, audioContext.currentTime); // Slightly louder
+            
+            osc1.start(audioContext.currentTime);
+            osc2.start(audioContext.currentTime);
+            osc3.start(audioContext.currentTime);
+            noiseSource.start(audioContext.currentTime);
+            
+            osc1.stop(audioContext.currentTime + 1.2);
+            osc2.stop(audioContext.currentTime + 1.0);
+            osc3.stop(audioContext.currentTime + 0.2);
+            noiseSource.stop(audioContext.currentTime + 0.8);
+        }
+        
+        function createLaserSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Laser sound: high-pitched zap
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.2);
+            
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+        
+        function createUltraLaserSound() {
+            // Ultra laser: more complex, powerful sound
+            const osc1 = audioContext.createOscillator();
+            const osc2 = audioContext.createOscillator();
+            const osc3 = audioContext.createOscillator();
+            
+            const gain1 = audioContext.createGain();
+            const gain2 = audioContext.createGain();
+            const gain3 = audioContext.createGain();
+            const masterGain = audioContext.createGain();
+            
+            osc1.connect(gain1);
+            osc2.connect(gain2);
+            osc3.connect(gain3);
+            gain1.connect(masterGain);
+            gain2.connect(masterGain);
+            gain3.connect(masterGain);
+            masterGain.connect(audioContext.destination);
+            
+            // Ultra laser: deeper, more powerful sound
+            osc1.type = 'sawtooth';
+            osc1.frequency.setValueAtTime(400, audioContext.currentTime);
+            osc1.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.3);
+            
+            osc2.type = 'square';
+            osc2.frequency.setValueAtTime(1200, audioContext.currentTime);
+            osc2.frequency.exponentialRampToValueAtTime(300, audioContext.currentTime + 0.25);
+            
+            osc3.type = 'triangle';
+            osc3.frequency.setValueAtTime(800, audioContext.currentTime);
+            osc3.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.35);
+            
+            gain1.gain.setValueAtTime(0.4, audioContext.currentTime);
+            gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+            
+            gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            gain3.gain.setValueAtTime(0.35, audioContext.currentTime);
+            gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.45);
+            
+            masterGain.gain.setValueAtTime(0.6, audioContext.currentTime);
+            
+            osc1.start(audioContext.currentTime);
+            osc2.start(audioContext.currentTime);
+            osc3.start(audioContext.currentTime);
+            
+            osc1.stop(audioContext.currentTime + 0.4);
+            osc2.stop(audioContext.currentTime + 0.3);
+            osc3.stop(audioContext.currentTime + 0.45);
+        }
+
+        function createSoftWooshSound() {
+            // --- SETUP ---
+            const now = audioContext.currentTime;
+            const duration = 0.50;
+
+            // 1. Oszillatoren für den "Wumms" des Nachbrenners
+            const osc = audioContext.createOscillator();
+            osc.type = 'sawtooth';
+
+            // NEU: Sub-Oszillator für das Bass-Fundament
+            const subOsc = audioContext.createOscillator();
+            subOsc.type = 'sine'; // Sinuswelle für einen reinen, tiefen Bass
+
+            // Eigene Gain-Regler für jeden Oszillator
+            const oscGain = audioContext.createGain();
+            const subOscGain = audioContext.createGain(); // NEU
+
+            // 2. Rauschen für das "Woosh"-Geräusch
+            const bufferSize = audioContext.sampleRate * duration;
+            const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const output = buffer.getChannelData(0);
+            
+            // GEÄNDERT: Rauschen wird jetzt als "Brown Noise" generiert für mehr Tiefe
+            let lastOut = 0.0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                output[i] = (lastOut + (0.02 * white)) / 1.02;
+                lastOut = output[i];
+                output[i] *= 3.5; // Lautstärke des Rauschens anheben
+            }
+            const noiseSource = audioContext.createBufferSource();
+            noiseSource.buffer = buffer;
+
+            // Filter für das Rauschen
+            const noiseFilter = audioContext.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+
+            // 3. Haupt-Lautstärkeregler
+            const masterGain = audioContext.createGain();
+
+            // 4. Alles miteinander verbinden
+            osc.connect(oscGain);
+            oscGain.connect(masterGain);
+            subOsc.connect(subOscGain); // NEU
+            subOscGain.connect(masterGain); // NEU
+            noiseSource.connect(noiseFilter);
+            noiseFilter.connect(masterGain);
+            masterGain.connect(audioContext.destination);
+
+            // --- AUTOMATION ---
+
+            // A) Oszillator-Automation (Zünd-Impuls)
+            osc.frequency.setValueAtTime(120, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.1);
+            oscGain.gain.setValueAtTime(0, now);
+            oscGain.gain.linearRampToValueAtTime(0.4, now + 0.02);
+            oscGain.gain.linearRampToValueAtTime(0, now + 0.15); // Etwas längeres Ausklingen
+
+            // B) Sub-Bass-Automation (Das Fundament) - NEU
+            subOsc.frequency.setValueAtTime(60, now); // Eine Oktave tiefer
+            subOsc.frequency.exponentialRampToValueAtTime(25, now + 0.2);
+            subOscGain.gain.setValueAtTime(0, now);
+            subOscGain.gain.linearRampToValueAtTime(0.7, now + 0.05); // Schwillt etwas langsamer an
+            subOscGain.gain.exponentialRampToValueAtTime(0.01, now + duration); // Hält den Bass länger
+
+            // C) Rauschen-Automation (der Schweif)
+            noiseFilter.frequency.setValueAtTime(8000, now);
+            noiseFilter.frequency.exponentialRampToValueAtTime(100, now + duration * 0.9);
+
+            // D) Gesamt-Lautstärke-Automation
+            // ANGEPASST: Etwas leiser, da der Sound jetzt "dichter" ist und mehr Druck hat
+            const peakVolume = 0.60;
+            masterGain.gain.setValueAtTime(0, now);
+            masterGain.gain.linearRampToValueAtTime(peakVolume, now + 0.03);
+            masterGain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+            // --- START & STOP ---
+            osc.start(now);
+            subOsc.start(now); // NEU
+            noiseSource.start(now);
+
+            osc.stop(now + duration);
+            subOsc.stop(now + duration); // NEU
+            noiseSource.stop(now + duration);
+        }        
+
+        // Create explosion sound for space beacon destruction        
+        function createExplosionSound() {
+            // Create complex explosion sound with multiple layers
+            const osc1 = audioContext.createOscillator();
+            const osc2 = audioContext.createOscillator();
+            const osc3 = audioContext.createOscillator();
+            const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.5, audioContext.sampleRate);
+            const noiseSource = audioContext.createBufferSource();
+            
+            // Create white noise for explosion texture
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < noiseBuffer.length; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+            noiseSource.buffer = noiseBuffer;
+            
+            const gain1 = audioContext.createGain();
+            const gain2 = audioContext.createGain();
+            const gain3 = audioContext.createGain();
+            const noiseGain = audioContext.createGain();
+            const masterGain = audioContext.createGain();
+            
+            // Connect all sources
+            osc1.connect(gain1);
+            osc2.connect(gain2);
+            osc3.connect(gain3);
+            noiseSource.connect(noiseGain);
+            gain1.connect(masterGain);
+            gain2.connect(masterGain);
+            gain3.connect(masterGain);
+            noiseGain.connect(masterGain);
+            masterGain.connect(audioContext.destination);
+            
+            // Explosion: sharp crack, mid boom, deep rumble
+            osc1.type = 'square';  // Sharp crack
+            osc1.frequency.setValueAtTime(800, audioContext.currentTime);
+            osc1.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.1);
+            
+            osc2.type = 'sawtooth';  // Mid-range boom
+            osc2.frequency.setValueAtTime(200, audioContext.currentTime);
+            osc2.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.3);
+            
+            osc3.type = 'triangle';  // Deep rumble
+            osc3.frequency.setValueAtTime(80, audioContext.currentTime);
+            osc3.frequency.exponentialRampToValueAtTime(20, audioContext.currentTime + 0.6);
+            
+            // Sharp attack, exponential decay
+            gain1.gain.setValueAtTime(0.8, audioContext.currentTime);
+            gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+            
+            gain2.gain.setValueAtTime(0.6, audioContext.currentTime);
+            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+            
+            gain3.gain.setValueAtTime(0.4, audioContext.currentTime);
+            gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+            
+            // Noise burst for texture
+            noiseGain.gain.setValueAtTime(0.3, audioContext.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
+            
+            masterGain.gain.setValueAtTime(0.4, audioContext.currentTime);
+            
+            osc1.start(audioContext.currentTime);
+            osc2.start(audioContext.currentTime);
+            osc3.start(audioContext.currentTime);
+            noiseSource.start(audioContext.currentTime);
+            
+            osc1.stop(audioContext.currentTime + 0.15);
+            osc2.stop(audioContext.currentTime + 0.4);
+            osc3.stop(audioContext.currentTime + 0.8);
+            noiseSource.stop(audioContext.currentTime + 0.2);
+        }
+        
+        // Mine explosion sound
+        function createMineExplosionSound() {
+            createExplosionSound(); // Reuse existing explosion sound
+        }
+        
+        // Dynamic game mechanics based on remaining words
+        function calculateSpaceshipChaseSpeed() {
+            const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
+            const settings = getDifficultySettings();
+            const baseSpeed = 4.8 * settings.spaceshipSpeedMultiplier; 
+            const desperationMultiplier = (12 - remainingWords) / 12 * 1.5;
+            const dynamicSpeed = baseSpeed * (1 + desperationMultiplier);
+            
+            console.log(`Spaceship chase speed - Words: ${remainingWords}, Speed: ${dynamicSpeed.toFixed(1)}, Difficulty: ${localStorage.getItem('wordDefenderDifficulty') || 'mittel'}`);
+            return dynamicSpeed;
+        }
+        
+        function calculateDynamicChaseProb() {
+            const remainingWords = floatingTexts.filter(word => !word.isDestroyed).length;
+            const baseProb = 0.3;
+            const desperationFactor = (12 - remainingWords) / 12;
+            return Math.min(0.7, baseProb + desperationFactor * 0.4);
+        }// Online Leaderboard API URL (kann angepasst werden)
+const LEADERBOARD_API = 'https://api.jsonbin.io/v3/b/66b1234567890abcdef12345'; // Beispiel-URL
+const API_KEY = '$2a$10$YOUR_API_KEY_HERE'; // JsonBin.io API Key
+
+// Initialize game when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    showInfoOverlay();
+});
+
+// The rest of the JavaScript will be added in subsequent parts...
