@@ -224,7 +224,7 @@ export const DIFFICULTY_SETTINGS = {
 // ========================================
 export const LEADERBOARD_CONFIG = {
     // API-Konfiguration (kann angepasst werden)
-    API_URL: 'https://api.jsonbin.io/v3/b/688db663f7e7a370d1f21314', // Beispiel-URL
+    API_URL: 'https://api.jsonbin.io/v3/b/688dba427b4b8670d8ab78b3',
     API_KEY: '$2a$10$WlNGWTg1zRf1nLeRGQhgCeewelc80o9K.sIckiS9zKIIRBGFuD732', // JsonBin.io API Key
     
     // Leaderboard-Limits
