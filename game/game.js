@@ -1981,10 +1981,13 @@ class SpaceshipController {
                 return;
             }
             
-            // Move toward target with dynamic boosted speed
-            const chaseSpeed = calculateSpaceshipChaseSpeed();
-            this.vx = (deltaX / distance) * chaseSpeed;
-            this.vy = (deltaY / distance) * chaseSpeed;
+            // Move toward target with dynamic boosted speed (etwas moderiert)
+            const chaseSpeed = calculateSpaceshipChaseSpeed() * 0.9; // 10% langsamer für glättere Bewegung
+            
+            // Vermeidung von Überschießen bei nahen Zielen
+            const speedFactor = Math.min(1.0, distance / 100); // Langsamere Annäherung bei < 100px
+            this.vx = (deltaX / distance) * chaseSpeed * speedFactor;
+            this.vy = (deltaY / distance) * chaseSpeed * speedFactor;
             
             // Rotate toward target
             this.targetRotation = Math.atan2(deltaY, deltaX) * 180 / Math.PI + 90;
@@ -2033,15 +2036,17 @@ class SpaceshipController {
             
             if (this.changeDirectionTimer > dynamicChangeInterval + Math.random() * 120) {
                 const speedMultiplier = effectiveAggressiveness.huntMode ? 1.5 : 1.0;
-                this.targetVx = (Math.random() - 0.5) * 3 * speedMultiplier;
-                this.targetVy = (Math.random() - 0.5) * 3 * speedMultiplier;
+                // Weniger aggressive Geschwindigkeitsänderungen um Zittern zu vermeiden
+                this.targetVx = (Math.random() - 0.5) * 2.5 * speedMultiplier;
+                this.targetVy = (Math.random() - 0.5) * 2.5 * speedMultiplier;
                 this.targetRotation = Math.atan2(this.targetVy, this.targetVx) * 180 / Math.PI + 90;
                 this.changeDirectionTimer = 0;
             }
             
-            // Smooth transition to target velocity
-            this.vx += (this.targetVx - this.vx) * 0.02;
-            this.vy += (this.targetVy - this.vy) * 0.02;
+            // Glättere Bewegung - erhöhte Interpolation von 0.02 auf 0.08
+            const smoothingFactor = effectiveAggressiveness.huntMode ? 0.12 : 0.08;
+            this.vx += (this.targetVx - this.vx) * smoothingFactor;
+            this.vy += (this.targetVy - this.vy) * smoothingFactor;
         }
         
         // Check if currently targeting word is still in range
@@ -2158,11 +2163,14 @@ class SpaceshipController {
             this.targetVy = -Math.abs(this.targetVy);
         }
         
-        // Smooth rotation
+        // Glättere Rotation - erhöhte Rotationsgeschwindigkeit von 0.1 auf 0.15
         let rotationDiff = this.targetRotation - this.rotation;
         if (rotationDiff > 180) rotationDiff -= 360;
         if (rotationDiff < -180) rotationDiff += 360;
-        this.rotation += rotationDiff * 0.1;
+        
+        // Adaptive Rotationsgeschwindigkeit je nach Modus
+        const rotationSpeed = this.isChasing ? 0.2 : 0.15;
+        this.rotation += rotationDiff * rotationSpeed;
         
         // Update spaceship position and rotation
         this.spaceship.style.left = this.x + 'px';
