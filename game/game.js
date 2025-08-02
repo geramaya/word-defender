@@ -67,6 +67,10 @@ let defendedWordsCounter = 0;
 // Sound system
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
+// Sound limiting to prevent multiple simultaneous boost sounds
+let lastBoostSoundTime = 0;
+const BOOST_SOUND_COOLDOWN = 500; // 500ms minimum between boost sounds
+
 function createBoosterSound() {
     // Create multiple oscillators for complex jet afterburner sound
     const osc1 = audioContext.createOscillator();
@@ -1973,6 +1977,13 @@ class SpaceshipController {
         this.forcedAggressionDuration = 0;
         this.hasFiredShot = false; // Verfolgt ob bereits ein Schuss in diesem Angriff abgegeben wurde
         
+        // Anti-Stuck-System
+        this.lastPositionX = this.x;
+        this.lastPositionY = this.y;
+        this.stuckCounter = 0;
+        this.lastMovementCheck = Date.now();
+        this.lastBoosterTime = 0; // Verhindert Booster-Spam
+        
         // Instanz-spezifische Timer
         this.shootTimer = null;
         this.radarInterval = null;
@@ -2088,6 +2099,14 @@ class SpaceshipController {
     }
 
     showBooster() {
+        // Verhindere Booster-Spam (maximal alle 1 Sekunde pro Schiff)
+        const now = Date.now();
+        if (now - this.lastBoosterTime < 1000) {
+            console.log(`🔇 Booster skipped for spaceship ${this.isSecondHunter ? '2' : '1'} (individual cooldown)`);
+            return;
+        }
+        this.lastBoosterTime = now;
+        
         const booster = document.createElement('div');
         booster.className = 'booster-flame';
         
@@ -2098,12 +2117,16 @@ class SpaceshipController {
         
         this.spaceship.appendChild(booster);
         
-        // Play booster sound
+        // Play booster sound with limiting to prevent multiple sounds
         try {
-            // createBoosterSound(); // Uncomment if you have a booster sound function
-            // Ansonsten nur den neuen, leisen "Woosh"
-            createSoftWooshSound();
-
+            // Only play sound if enough time has passed since last boost sound
+            if (now - lastBoostSoundTime >= BOOST_SOUND_COOLDOWN) {
+                createSoftWooshSound();
+                lastBoostSoundTime = now;
+                console.log(`🔊 Boost sound played by spaceship ${this.isSecondHunter ? '2' : '1'}`);
+            } else {
+                console.log('🔇 Boost sound skipped (global cooldown active)');
+            }
         } catch (e) {
             console.log('Audio not available:', e);
         }
@@ -2282,13 +2305,15 @@ class SpaceshipController {
                             this.shootAtRandomWord();
                         }, 500);
                     }
-                }                } else {
-            // Target still in radar range but outside shooting range: continue targeting
-            // Re-schedule targeting attempt after a short delay
-            this.targetingTimer = setTimeout(() => {
-                this.executeShot();
-            }, 500);
-        }                }
+                }
+            } else {
+                // Target still in radar range but outside shooting range: continue targeting
+                // Re-schedule targeting attempt after a short delay
+                this.targetingTimer = setTimeout(() => {
+                    this.executeShot();
+                }, 500);
+            }
+        }
         
         // Update position
         this.x += this.vx;
@@ -2325,10 +2350,83 @@ class SpaceshipController {
         const rotationSpeed = this.isChasing ? 0.2 : 0.15;
         this.rotation += rotationDiff * rotationSpeed;
         
+        // Anti-Stuck-System: Prüfe alle 2 Sekunden auf Bewegung
+        const now = Date.now();
+        if (now - this.lastMovementCheck > 2000) { // 2 Sekunden
+            const distanceMoved = Math.sqrt(
+                Math.pow(this.x - this.lastPositionX, 2) + 
+                Math.pow(this.y - this.lastPositionY, 2)
+            );
+            
+            if (distanceMoved < 10) { // Weniger als 10 Pixel in 2 Sekunden = stuck
+                this.stuckCounter++;
+                console.log(`🚨 Spaceship ${this.isSecondHunter ? '2' : '1'} appears stuck! Count: ${this.stuckCounter}, Distance: ${distanceMoved.toFixed(1)}px`);
+                
+                if (this.stuckCounter >= 2) { // Nach 4 Sekunden ohne Bewegung
+                    console.log(`🔧 Unsticking spaceship ${this.isSecondHunter ? '2' : '1'}!`);
+                    this.unstickSpaceship();
+                    this.stuckCounter = 0;
+                }
+            } else {
+                this.stuckCounter = 0; // Reset counter bei Bewegung
+            }
+            
+            // Update Tracking-Variablen
+            this.lastPositionX = this.x;
+            this.lastPositionY = this.y;
+            this.lastMovementCheck = now;
+        }
+        
         // Update spaceship position and rotation
         this.spaceship.style.left = this.x + 'px';
         this.spaceship.style.top = this.y + 'px';
         this.spaceship.style.transform = `rotate(${this.rotation}deg)`;
+    }
+    
+    unstickSpaceship() {
+        console.log(`🔧 Applying emergency unstick to spaceship ${this.isSecondHunter ? '2' : '1'}`);
+        
+        // Clear all timers und states, die zu Deadlocks führen könnten
+        clearTimeout(this.targetingTimer);
+        clearTimeout(this.radarInterval);
+        this.targetingTimer = null;
+        this.radarInterval = null;
+        
+        // Reset targeting state
+        if (this.targetingWord) {
+            this.targetingWord.element.classList.remove('targeted');
+            this.targetingWord = null;
+        }
+        
+        // Clear radar ping
+        if (this.radarPing && this.radarPing.parentNode) {
+            this.radarPing.remove();
+            this.radarPing = null;
+        }
+        
+        // Reset chase state
+        this.isChasing = false;
+        this.chaseTarget = null;
+        
+        // Reset aggression mode
+        this.isInForcedAggressionMode = false;
+        this.aggressionModeTimer = 0;
+        this.forcedAggressionDuration = 0;
+        
+        // Force new random movement direction with higher speed
+        this.targetVx = (Math.random() - 0.5) * 4; // Doppelte Geschwindigkeit
+        this.targetVy = (Math.random() - 0.5) * 4;
+        this.vx = this.targetVx * 0.5; // Sofort etwas Geschwindigkeit geben
+        this.vy = this.targetVy * 0.5;
+        
+        // Reset direction change timer to trigger new direction soon
+        this.changeDirectionTimer = 0;
+        
+        // Restart shooting timer
+        clearTimeout(this.shootTimer);
+        this.startShootingTimer();
+        
+        console.log(`✅ Spaceship ${this.isSecondHunter ? '2' : '1'} unstuck procedure completed`);
     }
     
     startShootingTimer() {
