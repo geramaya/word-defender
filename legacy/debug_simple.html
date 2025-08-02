@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Simple - Word Defender</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: black;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        .info-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        
+        .info-box {
+            background: #1a1a2e;
+            border: 2px solid #4CAF50;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            color: white;
+            max-width: 500px;
+        }
+        
+        .start-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        .start-button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600" style="background: black;"></canvas>
+
+    <script>
+        console.log('🌟 Script started');
+        
+        function showSimpleOverlay() {
+            console.log('🎯 showSimpleOverlay called');
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'info-overlay';
+            overlay.innerHTML = `
+                <div class="info-box">
+                    <h1>WORD DEFENDER</h1>
+                    <p>Debug Test - Einfaches Overlay</p>
+                    <button class="start-button" onclick="hideOverlay()">OVERLAY VERSTECKEN</button>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            console.log('✅ Simple overlay added to DOM');
+        }
+        
+        function hideOverlay() {
+            console.log('👋 hideOverlay called');
+            const overlay = document.querySelector('.info-overlay');
+            if (overlay) {
+                overlay.remove();
+                console.log('✅ Overlay removed');
+            }
+        }
+        
+        // Make functions global
+        window.showSimpleOverlay = showSimpleOverlay;
+        window.hideOverlay = hideOverlay;
+        
+        // Auto-start
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🌟 DOMContentLoaded event fired');
+            console.log('📦 showSimpleOverlay function available:', typeof showSimpleOverlay !== 'undefined');
+            
+            setTimeout(() => {
+                console.log('⏰ Starting simple overlay...');
+                showSimpleOverlay();
+            }, 100);
+        });
+    </script>
+</body>
+</html>
