@@ -237,10 +237,13 @@ body {
     border-radius: 20px;
     padding: 40px;
     max-width: 600px;
+    max-height: 85vh; /* Begrenze die maximale Höhe */
+    margin: 40px 20px; /* Füge Abstände oben/unten und links/rechts hinzu */
     text-align: center;
     color: white;
     font-family: 'Inter', sans-serif;
     box-shadow: 0 20px 60px rgba(68, 136, 255, 0.3);
+    overflow-y: auto; /* Ermögliche Scrollen bei langem Inhalt */
 }
 
 .info-box h1 {
@@ -942,7 +945,9 @@ body {
     border: 2px solid #4488ff;
     border-radius: 20px;
     padding: 30px;
-    margin-top: 20px;
+    margin: 20px 0; /* Verbesserte Abstände oben und unten */
+    max-height: 60vh; /* Begrenze die maximale Höhe */
+    overflow-y: auto; /* Ermögliche Scrollen bei vielen Einträgen */
     backdrop-filter: blur(10px);
     box-shadow: 0 20px 60px rgba(68, 136, 255, 0.3);
 }
@@ -1341,6 +1346,24 @@ body {
 
     .highscore-entry.compact .rank {
         min-width: auto;
+    }
+
+    /* Mobile Anpassungen für Overlays */
+    .info-box {
+        margin: 20px 10px; /* Bessere Abstände auf mobilen Geräten */
+        padding: 25px; /* Weniger Padding */
+        max-height: 90vh; /* Mehr Platz nutzen auf mobilen Geräten */
+    }
+
+    .highscore-table {
+        max-height: 50vh; /* Angepasste Höhe auf mobilen Geräten */
+        padding: 20px; /* Weniger Padding */
+        margin: 15px 0; /* Angepasste Abstände */
+    }
+
+    .highscore-entry {
+        padding: 10px 12px; /* Weniger Padding für mobile Einträge */
+        font-size: 14px; /* Kleinere Schrift auf mobilen Geräten */
     }
 }
 /* Pulsar Endgame Mechanics */
