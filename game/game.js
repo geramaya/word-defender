@@ -984,7 +984,16 @@ async function loadOnlineLeaderboard() {
         
         if (response.ok) {
             const data = await response.json();
-            return data.record || [];
+            // Robuste Behandlung verschiedener Datenformate
+            let leaderboard = data.record?.leaderboard || data.record || data.leaderboard || data || [];
+            
+            // Sicherstellen, dass es ein Array ist
+            if (!Array.isArray(leaderboard)) {
+                console.warn('Leaderboard ist kein Array, erstelle leeres Array');
+                leaderboard = [];
+            }
+            
+            return leaderboard;
         } else {
             console.warn('Online Leaderboard konnte nicht geladen werden');
             return [];
@@ -1018,14 +1027,14 @@ async function submitToOnlineLeaderboard(scoreData) {
         // Top 50 behalten
         const topScores = currentLeaderboard.slice(0, 50);
         
-        // Zurück zum Server senden
+        // Zurück zum Server senden - JSONBin erwartet das Array in der leaderboard-Struktur
         const response = await fetch(LEADERBOARD_API, {
             method: 'PUT',
             headers: {
                 'X-Master-Key': API_KEY,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(topScores)
+            body: JSON.stringify({ leaderboard: topScores })
         });
         
         if (response.ok) {
