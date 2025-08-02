@@ -1,5 +1,6 @@
 // Import der Game-Konfiguration
 import CONFIG from './game_config.js';
+import SecureStorage from './security_utils.js';
 
 const PHI = CONFIG.GAME_CONSTANTS.PHI;
 const UI_BAR_HEIGHT = CONFIG.GAME_CONSTANTS.UI_BAR_HEIGHT;
@@ -804,12 +805,15 @@ function showStartScreenHighscores() {
                     ? highscores.slice(0, 8).map((score, index) => {
                         const difficultyBadge = score.difficulty ? 
                             `<span class="difficulty-badge ${score.difficulty}">${score.difficulty.toUpperCase()}</span>` : '';
+                        
+                        const flaggedBadge = score.flagged ? 
+                            `<span class="flagged-badge" title="Verdächtiger Score">⚠️</span>` : '';
                             
                         return `
-                            <li class="highscore-entry compact">
+                            <li class="highscore-entry compact ${score.flagged ? 'flagged' : ''}">
                                 <div class="rank">#${index + 1}</div>
                                 <div class="player-info">
-                                    <div class="player-name">${score.name} ${difficultyBadge}</div>
+                                    <div class="player-name">${score.name} ${difficultyBadge} ${flaggedBadge}</div>
                                     <div class="score-details">
                                         <span class="score">${score.score} Punkte</span>
                                         <span class="time">${CONFIG.CONFIG_UTILS.formatTime(score.survivalTime)}</span>
@@ -929,10 +933,9 @@ function validateAndStartGame() {
 const LEADERBOARD_API = CONFIG.LEADERBOARD_CONFIG.API_URL; // Beispiel-URL
 const API_KEY = CONFIG.LEADERBOARD_CONFIG.API_KEY; // JsonBin.io API Key
 
-// Highscore localStorage functions
+// Highscore localStorage functions mit Sicherheitsmaßnahmen
 function loadHighscores() {
-    const saved = localStorage.getItem('wordDefenderHighscores');
-    return saved ? JSON.parse(saved) : [];
+    return SecureStorage.loadSecureHighscores();
 }
 
 function saveHighscore(playerName, survivalTime, finalScore) {
@@ -945,6 +948,18 @@ function saveHighscore(playerName, survivalTime, finalScore) {
         wordsDestroyed: CONFIG.GAME_CONSTANTS.TOTAL_WORDS - floatingTexts.filter(word => !word.isDestroyed).length,
         difficulty: localStorage.getItem('wordDefenderDifficulty') || CONFIG.GAME_CONSTANTS.DEFAULT_DIFFICULTY
     };
+    
+    // Anti-Cheat: Validiere Score
+    if (!SecureStorage.validateScore(newScore)) {
+        console.warn('🚨 Invalid score detected - not saving');
+        return null;
+    }
+    
+    // Anti-Cheat: Prüfe auf verdächtige Scores
+    if (SecureStorage.isSuspiciousScore(newScore, highscores)) {
+        console.warn('🚨 Suspicious score detected - flagging for review');
+        newScore.flagged = true; // Markiere verdächtige Scores
+    }
     
     highscores.push(newScore);
     
@@ -966,7 +981,8 @@ function saveHighscore(playerName, survivalTime, finalScore) {
     // Keep only top 10
     const topScores = highscores.slice(0, 10);
     
-    localStorage.setItem('wordDefenderHighscores', JSON.stringify(topScores));
+    // Sichere Speicherung
+    SecureStorage.saveSecureHighscores(topScores);
     
     return newScore;
 }
@@ -1006,8 +1022,20 @@ async function loadOnlineLeaderboard() {
 
 async function submitToOnlineLeaderboard(scoreData) {
     try {
+        // NEUE Validierung vor dem Senden
+        if (!SecureStorage.validateScore(scoreData)) {
+            console.warn('🚨 Invalid score - not submitting to online leaderboard');
+            return false;
+        }
+        
         // Erst aktuelle Daten laden
         const currentLeaderboard = await loadOnlineLeaderboard();
+        
+        // NEUE Anti-Cheat-Prüfung auch für Online
+        if (SecureStorage.isSuspiciousScore(scoreData, currentLeaderboard)) {
+            console.warn('🚨 Suspicious score detected - flagging for online submission');
+            scoreData.flagged = true; // Markiere auch online
+        }
         
         // Neuen Score hinzufügen
         currentLeaderboard.push({
