@@ -1032,6 +1032,16 @@ function loadHighscores() {
     return SecureStorage.loadSecureHighscores();
 }
 
+// Helper function to get difficulty sorting value
+function getDifficultySortValue(difficulty) {
+    switch (difficulty) {
+        case 'schwer': return 3;
+        case 'mittel': return 2;
+        case 'leicht': return 1;
+        default: return 0; // Für alte Scores ohne Schwierigkeit
+    }
+}
+
 function saveHighscore(playerName, survivalTime, finalScore) {
     const highscores = loadHighscores();
     const newScore = {
@@ -1064,11 +1074,19 @@ function saveHighscore(playerName, survivalTime, finalScore) {
         }
     });
     
-    // Sort by score first, then by survival time (both highest first)
+    // Sort by difficulty first (schwer > mittel > leicht), then by score, then by survival time
     highscores.sort((a, b) => {
+        const diffA = getDifficultySortValue(a.difficulty);
+        const diffB = getDifficultySortValue(b.difficulty);
+        
+        if (diffB !== diffA) {
+            return diffB - diffA; // Higher difficulty first
+        }
+        
         if (b.score !== a.score) {
             return b.score - a.score; // Higher score first
         }
+        
         return b.survivalTime - a.survivalTime; // If score tied, longer time first
     });
     
@@ -1138,12 +1156,20 @@ async function submitToOnlineLeaderboard(scoreData) {
             submittedAt: new Date().toISOString()
         });
         
-        // Nach Score sortieren (höchster zuerst)
+        // Nach Schwierigkeit, dann Score sortieren (höchste Schwierigkeit und Score zuerst)
         currentLeaderboard.sort((a, b) => {
-            if (b.score !== a.score) {
-                return b.score - a.score;
+            const diffA = getDifficultySortValue(a.difficulty);
+            const diffB = getDifficultySortValue(b.difficulty);
+            
+            if (diffB !== diffA) {
+                return diffB - diffA; // Higher difficulty first
             }
-            return b.survivalTime - a.survivalTime;
+            
+            if (b.score !== a.score) {
+                return b.score - a.score; // Higher score first
+            }
+            
+            return b.survivalTime - a.survivalTime; // If score tied, longer time first
         });
         
         // Top 50 behalten
