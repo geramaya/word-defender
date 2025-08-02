@@ -918,7 +918,9 @@ function updateFullscreenFilteredScores(difficulty) {
     const highscores = loadHighscores();
     
     if (container) {
-        container.innerHTML = renderFullscreenScores(highscores, difficulty, null);
+        // Check if we're in a game over context and get the current score
+        const currentScoreData = window.currentGameOverScore || null;
+        container.innerHTML = renderFullscreenScores(highscores, difficulty, currentScoreData);
     }
 }
 
@@ -1817,6 +1819,9 @@ function showRestartButton() {
     // Save highscore with final score
     const currentScoreData = saveHighscore(window.currentPlayerName, survivalTime, currentScore);
     
+    // Store current score data globally for filter updates
+    window.currentGameOverScore = currentScoreData;
+    
     // Create game over overlay with highscore table
     const overlay = document.createElement('div');
     overlay.className = 'info-overlay';
@@ -1862,6 +1867,9 @@ function restartGame() {
     if (gameUI) {
         gameUI.remove();
     }
+    
+    // Clear current game over score data
+    window.currentGameOverScore = null;
     
     // Stop UI updates to prevent memory leaks
     stopUIUpdates();
